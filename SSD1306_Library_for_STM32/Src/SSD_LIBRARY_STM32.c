@@ -6,6 +6,7 @@
  */
 
 #include <SSD_LIBRARY_STM32.h>
+#include "string.h"
 
 I2C_HandleTypeDef *handleI2C;
 //uint8_t display[8][128];
@@ -144,24 +145,23 @@ void SSD1306_SetPage(SSD1306_PAGE startAddress, SSD1306_PAGE endAddress)
 	  HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, cmd_area_page, 4, 100);
 }
 
-void SSD1306_ClearDisplay()
+void SSD1306_ClearDisplay(SSD1306_COLOR color)
 {
-	SSD1306_setAdressingMode(ADRESSING_MODE_HORIZONTAL);
+	uint8_t pixels;
+	if(color == COLOR_WHITE)
+		pixels = 0xFF;
+	else if(color == COLOR_BLACK)
+		pixels = 0x00;
 
-	SSD1306_SetColumn(0x00, 0x7F);
-	SSD1306_SetPage(PAGE_0, PAGE_7);
-
-	//clear display
-	uint8_t clear[129];
-	clear[0] = 0x40;
-	for (int i = 1; i < (129-1); i++) {
-	  clear[i] = 0x00;
-	}
-
-	for(int i=0; i<=7; i++)
+	for(uint8_t i=0; i<8; i++)
 	{
-	  HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, clear, 129, 500);
+		for(uint8_t j=0; j<128; j++)
+		{
+			display[i][j] = pixels;
+		}
 	}
+
+	SSD1306_UpdateDisplay();
 }
 
 void SSD1306_PAGE_setColumn(uint8_t column)
@@ -228,6 +228,31 @@ void SSD1306_DrawPixel(uint8_t x, uint8_t y)
 	display[page][x] |= line_hex;
 }
 
+void SSD1306_UpdatePage(SSD1306_PAGE page, uint8_t page_pixels[128])
+{
+	SSD1306_setAdressingMode(ADRESSING_MODE_HORIZONTAL);
+
+	SSD1306_SetColumn(0x00, 0x7F);
+	SSD1306_SetPage(page, page);
+
+	uint8_t command_size = 129;
+	uint8_t i2c_command[command_size];
+
+	memcpy(&i2c_command[1], page_pixels, command_size - 1);
+	i2c_command[0] = 0x40;
+
+	HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, i2c_command, command_size, 500);
+
+}
+
+void SSD1306_UpdateDisplay()
+{
+	for(int page=0; page<=7; page++)
+	{
+		SSD1306_UpdatePage(page, display[page]);
+	}
+}
+/*
 void updateDisplay()
 {
 	SSD1306_setAdressingMode(ADRESSING_MODE_HORIZONTAL);
@@ -252,6 +277,6 @@ void updateDisplay()
 		//HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, display[i], 129, 500);
 	}
 }
-
+*/
 
 

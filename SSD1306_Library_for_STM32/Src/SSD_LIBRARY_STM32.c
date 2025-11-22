@@ -11,6 +11,15 @@
 I2C_HandleTypeDef *handleI2C;
 //uint8_t display[8][128];
 uint8_t display[8][128];
+uint8_t display_buffer[8][128];
+
+static uint8_t pagesAreEquals(uint8_t page_A[128], uint8_t page_B[128])
+{
+	if(memcmp(page_A, page_B, 128) != 0)
+		return 0;
+	else
+		return 1;
+}
 
 static uint8_t convertLinetoHex(uint8_t line)
 {
@@ -157,7 +166,7 @@ void SSD1306_ClearDisplay(SSD1306_COLOR color)
 	{
 		for(uint8_t j=0; j<128; j++)
 		{
-			display[i][j] = pixels;
+			display_buffer[i][j] = pixels;
 		}
 	}
 
@@ -211,9 +220,9 @@ void SSD1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color)
 	uint8_t line_hex = convertLinetoHex(y);
 
 	if(color == COLOR_WHITE)
-		display[page][x] |= line_hex;
+		display_buffer[page][x] |= line_hex;
 	else if(color == COLOR_BLACK)
-		display[page][x] &= (~line_hex);
+		display_buffer[page][x] &= (~line_hex);
 }
 void SSD1306_DrawLineHorizontal(uint8_t x1, uint8_t x2, uint8_t y, SSD1306_COLOR color)
 {
@@ -275,7 +284,11 @@ void SSD1306_UpdateDisplay()
 {
 	for(int page=0; page<=7; page++)
 	{
-		SSD1306_UpdatePage(page, display[page]);
+		if(!pagesAreEquals(display[page], display_buffer[page]))
+		{
+			memcpy(&display[page], display_buffer[page], 128);
+			SSD1306_UpdatePage(page, display[page]);
+		}
 	}
 }
 /*

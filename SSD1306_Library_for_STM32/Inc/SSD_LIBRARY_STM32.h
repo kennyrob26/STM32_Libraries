@@ -31,14 +31,14 @@ typedef enum
 
 typedef enum
 {
-	PAGE_0 = 0xB0,
-	PAGE_1 = 0xB1,
-	PAGE_2 = 0xB2,
-	PAGE_3 = 0xB3,
-	PAGE_4 = 0xB4,
-	PAGE_5 = 0xB5,
-	PAGE_6 = 0xB6,
-	PAGE_7 = 0xB7
+	PAGE_0 = 0,
+	PAGE_1 = 1,
+	PAGE_2 = 2,
+	PAGE_3 = 3,
+	PAGE_4 = 4,
+	PAGE_5 = 5,
+	PAGE_6 = 6,
+	PAGE_7 = 7
 }SSD1306_PAGE;
 
 

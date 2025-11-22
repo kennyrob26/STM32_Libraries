@@ -45,7 +45,7 @@ static uint8_t convertLinetoHex(uint8_t line)
 
 static SSD1306_PAGE convertLineToPage(uint8_t line)
 {
-    //line -= 1;
+
     if(line >= 0 && line <= 63)
     {
         if(line <= 7)
@@ -65,6 +65,7 @@ static SSD1306_PAGE convertLineToPage(uint8_t line)
         else if (line <= 63)
             return PAGE_7;
     }
+
 }
 
 void SSD1306_Init(I2C_HandleTypeDef *handle_i2c)
@@ -134,6 +135,20 @@ void SSD1306_Init(I2C_HandleTypeDef *handle_i2c)
 	  uint8_t cmd_scan_dir[2] = {0x00, 0xC0};
 	  HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, cmd_scan_dir, 2, 100);
 */
+	  //Force clear display
+		for(uint8_t i=0; i<8; i++)
+		{
+			for(uint8_t j=0; j<128; j++)
+			{
+				display_buffer[i][j] = 0x00;
+			}
+		}
+
+		for(int page=0; page<=7; page++)
+		{
+			memcpy(&display[page], display_buffer[page], 128);
+			SSD1306_UpdatePage(page, display[page]);
+		}
 }
 
 void SSD1306_setAdressingMode(SSD1306_ADRESSING_MODE mode)
@@ -171,6 +186,7 @@ void SSD1306_ClearDisplay(SSD1306_COLOR color)
 	}
 
 	SSD1306_UpdateDisplay();
+
 }
 
 void SSD1306_PAGE_setColumn(uint8_t column)
@@ -194,26 +210,6 @@ void SSD1306_PAGE_setPage(SSD1306_PAGE page)
 	  HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, display_page, 2, 100);
 }
 
-/*
-void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column)
-{
-	SSD1306_PAGE page = convertLineToPage(line);
-	uint8_t line_hex  = convertLinetoHex(line);
-
-
-	uint8_t qtd_pixels = (end_column - start_column) + 1;
-	uint8_t pixels[qtd_pixels];
-	pixels[0] = 0x40;
-
-	SSD1306_SetColumn(start_column, end_column);
-	SSD1306_SetPage(page, page);
-
-    for(uint8_t i = 1; i <= qtd_pixels; i++)
-    	pixels[i] = line_hex;
-
-    HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, pixels, qtd_pixels, 500);
-}
-*/
 void SSD1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color)
 {
 	uint8_t page     = convertLineToPage(y) & 0x0F;
@@ -232,7 +228,7 @@ void SSD1306_DrawLineHorizontal(uint8_t x1, uint8_t x2, uint8_t y, SSD1306_COLOR
 	}
 }
 
-SSD1306_DrawLineVertical(uint8_t x, uint8_t y1,uint8_t y2, SSD1306_COLOR color)
+void SSD1306_DrawLineVertical(uint8_t x, uint8_t y1,uint8_t y2, SSD1306_COLOR color)
 {
 	for(uint8_t i=y1; i<=y2; i++)
 	{
@@ -246,20 +242,6 @@ void SSD1306_DrawLine(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2, SSD1306_CO
 	else if(y1 == y2)
 		SSD1306_DrawLineHorizontal(x1, x2, y1, color);
 }
-/*
-void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column)
-{
-	uint8_t page     = convertLineToPage(line) & 0x0F;
-	uint8_t line_hex = convertLinetoHex(line);
-
-	//display[page][]
-
-	uint8_t qtd_pixels = (end_column - start_column);
-
-    for(uint8_t i = start_column; i <= qtd_pixels; i++)
-    	display[page][i] |= line_hex;
-
-}*/
 
 
 
@@ -291,31 +273,6 @@ void SSD1306_UpdateDisplay()
 		}
 	}
 }
-/*
-void updateDisplay()
-{
-	SSD1306_setAdressingMode(ADRESSING_MODE_HORIZONTAL);
 
-	SSD1306_SetColumn(0x00, 0x7F);
-	SSD1306_SetPage(PAGE_0, PAGE_7);
-
-	//clear display
-	uint8_t display_update[129];
-	display_update[0] = 0x40;
-
-	for(int i=0; i<=7; i++)
-	{
-
-		for (int j = 1; j <=(128); j++)
-		{
-			display_update[j] = display[i][j-1];
-		}
-		HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, display_update, 129, 500);
-
-		//display[i][0] = 0x40;
-		//HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, display[i], 129, 500);
-	}
-}
-*/
 
 

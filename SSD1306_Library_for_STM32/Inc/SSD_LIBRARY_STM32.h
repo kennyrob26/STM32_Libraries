@@ -13,6 +13,17 @@
 #define DISPLAY_READ_CODE  0x79
 #define DISPLAY_WRITE_CODE 0x78
 
+#define DISPLAY_LINES    64
+#define DISPLAY_COLUMNS 128
+#define DISPLAY_PAGES     8
+#define DISPLAY_BLOCKS   16
+
+typedef union
+{
+	uint8_t all_pixels[DISPLAY_LINES * DISPLAY_COLUMNS];
+	uint8_t page[DISPLAY_PAGES][DISPLAY_COLUMNS];
+	uint8_t block[DISPLAY_PAGES][DISPLAY_BLOCKS][8];
+}SSD1306_DISPLAY_FRAMES;
 
 
 typedef enum

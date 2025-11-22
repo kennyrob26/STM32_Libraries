@@ -9,9 +9,10 @@
 #include "string.h"
 
 I2C_HandleTypeDef *handleI2C;
-//uint8_t display[8][128];
-uint8_t display[8][128];
-uint8_t display_buffer[8][128];
+
+SSD1306_DISPLAY_FRAMES display_mirror;
+SSD1306_DISPLAY_FRAMES display_buffer;
+
 
 static uint8_t pagesAreEquals(uint8_t page_A[128], uint8_t page_B[128])
 {
@@ -140,14 +141,14 @@ void SSD1306_Init(I2C_HandleTypeDef *handle_i2c)
 		{
 			for(uint8_t j=0; j<128; j++)
 			{
-				display_buffer[i][j] = 0x00;
+				display_buffer.page[i][j] = 0x00;
 			}
 		}
 
 		for(int page=0; page<=7; page++)
 		{
-			memcpy(&display[page], display_buffer[page], 128);
-			SSD1306_UpdatePage(page, display[page]);
+			memcpy(&display_mirror.page[page], display_buffer.page[page], 128);
+			SSD1306_UpdatePage(page, display_mirror.page[page]);
 		}
 }
 
@@ -181,7 +182,7 @@ void SSD1306_ClearDisplay(SSD1306_COLOR color)
 	{
 		for(uint8_t j=0; j<128; j++)
 		{
-			display_buffer[i][j] = pixels;
+			display_buffer.page[i][j] = pixels;
 		}
 	}
 
@@ -216,9 +217,9 @@ void SSD1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color)
 	uint8_t line_hex = convertLinetoHex(y);
 
 	if(color == COLOR_WHITE)
-		display_buffer[page][x] |= line_hex;
+		display_buffer.page[page][x] |= line_hex;
 	else if(color == COLOR_BLACK)
-		display_buffer[page][x] &= (~line_hex);
+		display_buffer.page[page][x] &= (~line_hex);
 }
 void SSD1306_DrawLineHorizontal(uint8_t x1, uint8_t x2, uint8_t y, SSD1306_COLOR color)
 {
@@ -266,10 +267,10 @@ void SSD1306_UpdateDisplay()
 {
 	for(int page=0; page<=7; page++)
 	{
-		if(!pagesAreEquals(display[page], display_buffer[page]))
+		if(!pagesAreEquals(display_mirror.page[page], display_buffer.page[page]))
 		{
-			memcpy(&display[page], display_buffer[page], 128);
-			SSD1306_UpdatePage(page, display[page]);
+			memcpy(&display_mirror.page[page], display_buffer.page[page], 128);
+			SSD1306_UpdatePage(page, display_mirror.page[page]);
 		}
 	}
 }

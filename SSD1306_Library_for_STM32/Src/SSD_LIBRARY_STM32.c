@@ -220,6 +220,14 @@ void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column)
 
 }
 
+void SSD1306_DrawPixel(uint8_t x, uint8_t y)
+{
+	uint8_t page     = convertLineToPage(y) & 0x0F;
+	uint8_t line_hex = convertLinetoHex(y);
+
+	display[page][x] |= line_hex;
+}
+
 void updateDisplay()
 {
 	SSD1306_setAdressingMode(ADRESSING_MODE_HORIZONTAL);

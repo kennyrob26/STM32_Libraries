@@ -46,6 +46,7 @@ void SSD1306_PAGE_setColumn(uint8_t column);
 void SSD1306_PAGE_setPage(SSD1306_PAGE page);
 void SSD1306_PAGE_setPage(SSD1306_PAGE page);
 void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column);
+void SSD1306_DrawPixel(uint8_t x, uint8_t y);
 void updateDisplay();
 
 

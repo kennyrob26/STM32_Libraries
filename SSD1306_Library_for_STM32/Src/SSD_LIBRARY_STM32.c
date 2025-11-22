@@ -14,7 +14,7 @@ uint8_t display[8][128];
 
 static uint8_t convertLinetoHex(uint8_t line)
 {
-    uint8_t mod = line % 8;
+    uint8_t mod = (line+1) % 8;
 
     if(mod == 1)
         return(0x01);
@@ -36,7 +36,7 @@ static uint8_t convertLinetoHex(uint8_t line)
 
 static SSD1306_PAGE convertLineToPage(uint8_t line)
 {
-    line -= 1;
+    //line -= 1;
     if(line >= 0 && line <= 63)
     {
         if(line <= 7)
@@ -205,7 +205,39 @@ void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column)
     HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, pixels, qtd_pixels, 500);
 }
 */
+void SSD1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color)
+{
+	uint8_t page     = convertLineToPage(y) & 0x0F;
+	uint8_t line_hex = convertLinetoHex(y);
 
+	if(color == COLOR_WHITE)
+		display[page][x] |= line_hex;
+	else if(color == COLOR_BLACK)
+		display[page][x] &= (~line_hex);
+}
+void SSD1306_DrawLineHorizontal(uint8_t x1, uint8_t x2, uint8_t y, SSD1306_COLOR color)
+{
+	for(uint8_t i = x1; i<=x2; i++)
+	{
+		SSD1306_DrawPixel(i, y, color);
+	}
+}
+
+SSD1306_DrawLineVertical(uint8_t x, uint8_t y1,uint8_t y2, SSD1306_COLOR color)
+{
+	for(uint8_t i=y1; i<=y2; i++)
+	{
+		SSD1306_DrawPixel(x, i, color);
+	}
+}
+void SSD1306_DrawLine(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2, SSD1306_COLOR color)
+{
+	if(x1 == x2)
+		SSD1306_DrawLineVertical(x1, y1, y2, color);
+	else if(y1 == y2)
+		SSD1306_DrawLineHorizontal(x1, x2, y1, color);
+}
+/*
 void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column)
 {
 	uint8_t page     = convertLineToPage(line) & 0x0F;
@@ -218,15 +250,9 @@ void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column)
     for(uint8_t i = start_column; i <= qtd_pixels; i++)
     	display[page][i] |= line_hex;
 
-}
+}*/
 
-void SSD1306_DrawPixel(uint8_t x, uint8_t y)
-{
-	uint8_t page     = convertLineToPage(y) & 0x0F;
-	uint8_t line_hex = convertLinetoHex(y);
 
-	display[page][x] |= line_hex;
-}
 
 void SSD1306_UpdatePage(SSD1306_PAGE page, uint8_t page_pixels[128])
 {

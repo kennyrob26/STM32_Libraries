@@ -50,8 +50,11 @@ void SSD1306_ClearDisplay(SSD1306_COLOR color);
 void SSD1306_PAGE_setColumn(uint8_t column);
 void SSD1306_PAGE_setPage(SSD1306_PAGE page);
 void SSD1306_PAGE_setPage(SSD1306_PAGE page);
-void SSD1306_DrawLine(uint8_t line, uint8_t start_column, uint8_t end_column);
-void SSD1306_DrawPixel(uint8_t x, uint8_t y);
+
+void SSD1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color);
+void SSD1306_DrawLineHorizontal(uint8_t x1, uint8_t x2, uint8_t y, SSD1306_COLOR color);
+void SSD1306_DrawLineVertical(uint8_t x, uint8_t y1,uint8_t y2, SSD1306_COLOR color);
+void SSD1306_DrawLine(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2, SSD1306_COLOR color);
 void SSD1306_UpdatePage(SSD1306_PAGE page, uint8_t page_pixels[128]);
 void SSD1306_UpdateDisplay();
 

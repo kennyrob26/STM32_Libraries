@@ -13,10 +13,11 @@
 #define DISPLAY_READ_CODE  0x79
 #define DISPLAY_WRITE_CODE 0x78
 
-#define DISPLAY_LINES    64
-#define DISPLAY_COLUMNS 128
-#define DISPLAY_PAGES     8
-#define DISPLAY_BLOCKS   16
+#define DISPLAY_LINES     64
+#define DISPLAY_COLUMNS  128
+#define DISPLAY_PAGES      8
+#define DISPLAY_BLOCKS    16
+#define DISPLAY_BLOCK_SIZE (DISPLAY_COLUMNS / DISPLAY_BLOCKS)
 
 typedef union
 {
@@ -68,6 +69,8 @@ void SSD1306_DrawLineVertical(uint8_t x, uint8_t y1,uint8_t y2, SSD1306_COLOR co
 void SSD1306_DrawLine(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2, SSD1306_COLOR color);
 void SSD1306_UpdatePage(SSD1306_PAGE page, uint8_t page_pixels[128]);
 void SSD1306_UpdateDisplay();
+void SSD1306_UpdateDisplayBlocks();
+void SSD_1306_UpdateBlock(SSD1306_PAGE page, uint8_t block, uint8_t block_pixels[DISPLAY_BLOCK_SIZE]);
 
 
 

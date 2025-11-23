@@ -13,10 +13,17 @@ I2C_HandleTypeDef *handleI2C;
 SSD1306_DISPLAY_FRAMES display_mirror;
 SSD1306_DISPLAY_FRAMES display_buffer;
 
-
-static uint8_t pagesAreEquals(uint8_t page_A[128], uint8_t page_B[128])
+static uint8_t blocksAreEquals(uint8_t block_A[DISPLAY_BLOCK_SIZE], uint8_t block_B[DISPLAY_BLOCK_SIZE])
 {
-	if(memcmp(page_A, page_B, 128) != 0)
+	if(memcmp(block_A, block_B,DISPLAY_BLOCK_SIZE) != 0)
+		return 0;
+	else
+		return 1;
+}
+
+static uint8_t pagesAreEquals(uint8_t page_A[DISPLAY_COLUMNS], uint8_t page_B[DISPLAY_COLUMNS])
+{
+	if(memcmp(page_A, page_B, DISPLAY_COLUMNS) != 0)
 		return 0;
 	else
 		return 1;
@@ -68,6 +75,7 @@ static SSD1306_PAGE convertLineToPage(uint8_t line)
     }
 
 }
+
 
 void SSD1306_Init(I2C_HandleTypeDef *handle_i2c)
 {
@@ -269,10 +277,48 @@ void SSD1306_UpdateDisplay()
 	{
 		if(!pagesAreEquals(display_mirror.page[page], display_buffer.page[page]))
 		{
-			memcpy(&display_mirror.page[page], display_buffer.page[page], 128);
+			memcpy(&display_mirror.page[page], display_buffer.page[page], DISPLAY_COLUMNS);
 			SSD1306_UpdatePage(page, display_mirror.page[page]);
 		}
 	}
+}
+
+
+void SSD1306_UpdateDisplayBlocks()
+{
+	for(uint8_t page=0; page<DISPLAY_PAGES; page++)
+	{
+		for(uint8_t block=0; block<DISPLAY_BLOCKS; block++)
+		{
+			if(!blocksAreEquals(display_mirror.block[page][block], display_buffer.block[page][block]))
+			{
+				memcpy(&display_mirror.block[page][block], display_buffer.block[page][block], DISPLAY_BLOCK_SIZE);
+				SSD_1306_UpdateBlock(page, block, display_mirror.block[page][block]);
+			}
+		}
+	}
+}
+
+void SSD_1306_UpdateBlock(SSD1306_PAGE page, uint8_t block, uint8_t block_pixels[DISPLAY_BLOCK_SIZE])
+{
+	SSD1306_setAdressingMode(ADRESSING_MODE_HORIZONTAL);
+	uint8_t startColumn;
+	if(block == 0)
+		startColumn = 0;
+	else
+		startColumn = ((8*block) - 1);
+	uint8_t endColumn  = startColumn + 8;
+
+	SSD1306_SetColumn(startColumn, endColumn);
+	SSD1306_SetPage(page, page);
+
+	uint8_t i2c_command[DISPLAY_BLOCK_SIZE + 1];
+
+	memcpy(&i2c_command[1], block_pixels, DISPLAY_BLOCK_SIZE);
+	i2c_command[0] = 0x40;
+
+	HAL_I2C_Master_Transmit(handleI2C, DISPLAY_WRITE_CODE, i2c_command, DISPLAY_BLOCK_SIZE + 1, 500);
+
 }
 
 

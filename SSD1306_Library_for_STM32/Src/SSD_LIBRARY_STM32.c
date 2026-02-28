@@ -244,12 +244,39 @@ void SSD1306_DrawLineVertical(uint8_t x, uint8_t y1,uint8_t y2, SSD1306_COLOR co
 		SSD1306_DrawPixel(x, i, color);
 	}
 }
-void SSD1306_DrawLine(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2, SSD1306_COLOR color)
+void SSD1306_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SSD1306_COLOR color)
 {
 	if(x1 == x2)
 		SSD1306_DrawLineVertical(x1, y1, y2, color);
 	else if(y1 == y2)
 		SSD1306_DrawLineHorizontal(x1, x2, y1, color);
+	else
+	{
+		uint8_t dx = x2-x1;
+		uint8_t dy = y2-y1;
+
+		uint8_t d = 2 * dy - dx;
+
+		uint8_t x = x1;
+		uint8_t y = y1;
+
+		SSD1306_DrawPixel(x, y, color);
+
+		while(x <= x2)
+		{
+			if(d>0)
+			{
+				y++;
+				d = d + 2 * (dy - dx);
+			}
+			else if(d<=0)
+			{
+				d = d + 2 * dy;
+			}
+			x++;
+			SSD1306_DrawPixel(x, y, color);
+		}
+	}
 }
 
 

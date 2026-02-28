@@ -54,6 +54,7 @@ typedef enum
 }SSD1306_PAGE;
 
 
+
 void SSD1306_Init();
 void SSD1306_setAdressingMode(SSD1306_ADRESSING_MODE mode);
 void SSD1306_SetPage(SSD1306_PAGE startAddress, SSD1306_PAGE endAddress);
@@ -66,7 +67,7 @@ void SSD1306_PAGE_setPage(SSD1306_PAGE page);
 void SSD1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color);
 void SSD1306_DrawLineHorizontal(uint8_t x1, uint8_t x2, uint8_t y, SSD1306_COLOR color);
 void SSD1306_DrawLineVertical(uint8_t x, uint8_t y1,uint8_t y2, SSD1306_COLOR color);
-void SSD1306_DrawLine(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2, SSD1306_COLOR color);
+void SSD1306_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SSD1306_COLOR color);
 void SSD1306_UpdatePage(SSD1306_PAGE page, uint8_t page_pixels[128]);
 void SSD1306_UpdateDisplay();
 void SSD1306_UpdateDisplayBlocks();

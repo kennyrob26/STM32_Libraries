@@ -50,6 +50,17 @@ typedef enum{
 	SH1107_ADRESSING_MODE_VERTICAL = 1
 }SH1107_ADRESSING_MODE;
 
+typedef enum{
+	SH1107_CONTRAST_LOW     = 0x00, //0
+	SH1107_CONTRAST_DEFAULT = 0x80, //128 - max recomended contrast
+	SH1107_CONTRAST_HIGH    = 0xFF
+}SH1107_CONTRAST;
+
+typedef enum{
+	SH1107_MODE_NORMAL  = 0,
+	SH1107_MODE_INVERSE = 1
+}SH1107_DisplayMode;
+
 SH1107_ERROR SH1107_SetSPI(SH1107_HandleTypeDef *sh1107, SPI_HandleTypeDef *hspi);
 SH1107_ERROR SH1107_SetPin_Cs(SH1107_HandleTypeDef *sh1107,GPIO_TypeDef *port, uint16_t pin);
 SH1107_ERROR SH1107_SetPin_Dc(SH1107_HandleTypeDef *sh1107, GPIO_TypeDef *port, uint16_t pin);
@@ -60,5 +71,12 @@ SH1107_ERROR SH1107_CMD_Display_ON(SH1107_HandleTypeDef *sh1107, SH1107_Status d
 SH1107_ERROR SH1107_CMD_SetMultiplex(SH1107_HandleTypeDef *sh1107, uint8_t multiplex);
 SH1107_ERROR SH1107_CMD_SetAdressingMode(SH1107_HandleTypeDef *sh1107, SH1107_ADRESSING_MODE adress_mode);
 SH1107_ERROR SH1107_CMD_SetContrast(SH1107_HandleTypeDef *sh1107, uint8_t contrast);
+SH1107_ERROR SH1107_CMD_SetDisplayMode(SH1107_HandleTypeDef *sh1107, SH1107_DisplayMode mode);
+SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column);
+SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adress);
+SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, uint8_t page_adress);
+SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size);
+SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data);
+SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107);
 
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

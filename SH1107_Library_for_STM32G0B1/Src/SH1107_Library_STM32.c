@@ -99,9 +99,7 @@ SH1107_ERROR SH1107_Transmit(SH1107_HandleTypeDef *sh1107, SH1107_DC dc, uint8_t
 	{
 		HAL_GPIO_WritePin(sh1107->cs_pin.port, sh1107->cs_pin.pin, 0);		//seleciona o chip
 		HAL_GPIO_WritePin(sh1107->dc_pin.port, sh1107->dc_pin.pin, dc);		//Enviar um comando
-		HAL_Delay(1);
-		HAL_SPI_Transmit(sh1107->hspi, buffer, size, 10); //seta multiplex
-		HAL_Delay(1);
+		HAL_SPI_Transmit(sh1107->hspi, buffer, size, 10);
 		HAL_GPIO_WritePin(sh1107->cs_pin.port, sh1107->cs_pin.pin, 1);
 
 		return SH1107_OK;
@@ -125,10 +123,10 @@ SH1107_ERROR SH1107_CMD_Reset(SH1107_HandleTypeDef *sh1107)
 		return SH1107_ERROR_PIN_NOT_DEFINED;
 
 	HAL_GPIO_WritePin(sh1107->reset_pin.port, sh1107->reset_pin.pin, 0);
-	HAL_Delay(100);
+	HAL_Delay(20);
 	HAL_GPIO_WritePin(sh1107->reset_pin.port, sh1107->reset_pin.pin, 1);
 	HAL_GPIO_WritePin(sh1107->cs_pin.port, sh1107->cs_pin.pin, 1);		//Não seleciona o chip
-	HAL_Delay(50);
+	HAL_Delay(10);
 
 	return SH1107_OK;
 
@@ -188,6 +186,93 @@ SH1107_ERROR SH1107_CMD_SetContrast(SH1107_HandleTypeDef *sh1107, uint8_t contra
 
 	return SH1107_Transmit(sh1107, SH1107_DC_COMMAND, cmd_contrast, sizeof(cmd_contrast));
 }
+
+SH1107_ERROR SH1107_CMD_SetDisplayMode(SH1107_HandleTypeDef *sh1107, SH1107_DisplayMode mode)
+{
+	uint8_t cmd_mode = 0;
+	if(mode == SH1107_MODE_NORMAL)
+		cmd_mode = 0xA6;
+	else if(mode == SH1107_MODE_INVERSE)
+		cmd_mode = 0xA7;
+	else
+		return SH1107_ERROR_INCORRECT_PARAMETER;
+
+	return SH1107_Transmit(sh1107, SH1107_DC_COMMAND, &cmd_mode, 1);
+}
+
+SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column)
+{
+	if(column > 127)
+		return SH1107_ERROR_INCORRECT_PARAMETER;
+
+	uint8_t high_bits = 0x10 | ((column >> 4) & 0x07);
+	uint8_t low_bits  = 0x00 | (column & 0x0F);
+
+	uint8_t cmd_column[2] = {high_bits, low_bits};
+
+	return SH1107_Transmit(sh1107, SH1107_DC_COMMAND, cmd_column, 2);
+}
+
+SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adress)
+{
+	if(page_adress > 15)
+		return SH1107_ERROR_INCORRECT_PARAMETER;
+
+	uint8_t cmd_page_adress = 0xB0 | (page_adress & 0x0F);
+
+	return SH1107_Transmit(sh1107, SH1107_DC_COMMAND, &cmd_page_adress, 1);
+}
+
+SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, uint8_t page_adress)
+{
+	SH1107_CMD_SetColumn(sh1107, column);
+	SH1107_CMD_SetPage(sh1107, page_adress);
+
+	return SH1107_OK;
+}
+
+SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size)
+{
+	SH1107_Transmit(sh1107, SH1107_DC_DATA, data, size);
+
+	return SH1107_OK;
+
+}
+
+SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data)
+{
+	SH1107_CMD_SetPage(sh1107, page);
+	SH1107_CMD_WriteDisplayData(sh1107, data, 128);
+
+	return SH1107_OK;
+}
+
+SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107)
+{
+	uint8_t clearn_byte[128] = {0x00};
+
+	for(uint8_t i=0; i<=15; i++)
+		SH1107_DRAW_Page(sh1107, i, clearn_byte);
+	return SH1107_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

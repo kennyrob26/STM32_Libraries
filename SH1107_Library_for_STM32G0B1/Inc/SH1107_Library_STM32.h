@@ -32,6 +32,8 @@ typedef struct
 	SH1107_GPIO_t cs_pin;
 	SH1107_GPIO_t dc_pin;
 	SH1107_GPIO_t reset_pin;
+
+	uint8_t buffer[SH1107_PAGES][SH1107_WIDTH];
 }SH1107_HandleTypeDef;
 
 typedef enum{
@@ -86,5 +88,6 @@ SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_
 SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y);
 SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page);
+SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107);
 
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

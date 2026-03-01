@@ -7,8 +7,9 @@
 
 
 #include "SH1107_Library_STM32.h"
+#include "string.h"
 
-uint8_t sh1107_buffer[SH1107_PAGES][SH1107_WIDTH];
+//uint8_t sh1107_buffer[SH1107_PAGES][SH1107_WIDTH];
 
 uint8_t convertLineToPage(uint8_t target_line)
 {
@@ -259,9 +260,7 @@ SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *
 
 SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data)
 {
-	SH1107_CMD_SetColumn(sh1107, 0);
-	SH1107_CMD_SetPage(sh1107, page);
-	SH1107_CMD_WriteDisplayData(sh1107, data, SH1107_WIDTH);
+	memcpy(sh1107->buffer[page], data, SH1107_WIDTH);
 
 	return SH1107_OK;
 }
@@ -272,29 +271,40 @@ SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107)
 
 	for(uint8_t i=0; i<=15; i++)
 		SH1107_DRAW_Page(sh1107, i, clearn_byte);
+
+	SH1107_Update_Display(sh1107);
 	return SH1107_OK;
 }
 
 SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y)
 {
 	uint8_t page = convertLineToPage(y);
-	//SH1107_CMD_SetPage(sh1107, page);
-	//SH1107_CMD_SetColumn(sh1107, x);
-
 	uint8_t byte_column = convertLineToHex(y);
 
-	sh1107_buffer[page][x] |= byte_column;
-
-	//SH1107_CMD_WriteDisplayData(sh1107, &byte_column, 1);
+	sh1107->buffer[page][x] |= byte_column;
 
 	return SH1107_OK;
 }
 
 SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page)
 {
-	uint8_t *data = sh1107_buffer[page];
-	SH1107_DRAW_Page(sh1107, page, data);
+	uint8_t *data = sh1107->buffer[page];
 
+	SH1107_CMD_SetCursor(sh1107, 0, page);
+	SH1107_CMD_WriteDisplayData(sh1107, data, SH1107_WIDTH);
+
+
+	return SH1107_OK;
+}
+
+SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
+{
+	uint8_t page = 0;
+	while(page <= 15)
+	{
+		SH1107_Update_Page(sh1107, page);
+		page++;
+	}
 	return SH1107_OK;
 }
 

@@ -22,6 +22,16 @@ uint8_t convertLineToHex(uint8_t target_line)
 	return bit_hex;
 }
 
+void normalize_range(uint8_t *v1, uint8_t *v2)
+{
+	if(*v1 > *v2)
+	{
+		uint8_t v1_cp = *v1;
+		*v1 = *v2;
+		*v2 = v1_cp;
+	}
+}
+
 /**
  * @brief Receive SPI Handle
  *
@@ -256,6 +266,24 @@ SH1107_ERROR SH1107_CMD_SetDisplayMode(SH1107_HandleTypeDef *sh1107, SH1107_Disp
 	return error_code;
 }
 
+SH1107_ERROR SH1107_CMD_SetDirection(SH1107_HandleTypeDef *sh1107, SH1107_DisplayDirection direction)
+{
+	uint8_t cmd_direction = 0;
+	if(direction == SH1107_DIRECTION_NORMAL)
+		cmd_direction = 0xA0;
+	else if(direction == SH1107_DIRECTION_REVERSE)
+		cmd_direction = 0xA1;
+	else
+		return SH1107_ERROR_INCORRECT_PARAMETER;
+
+	SH1107_ERROR error_code = SH1107_Transmit(sh1107, SH1107_DC_COMMAND, &cmd_direction, 1);
+
+	if(error_code == SH1107_OK)
+		sh1107->display_direction = direction;
+
+	return error_code;
+}
+
 SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column)
 {
 	if(column >= SH1107_WIDTH)
@@ -360,22 +388,11 @@ SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
 
 SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
 {
-
 	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
-	if(x1 > x2)
-	{
-		uint8_t buffer_x1 = x1;
-		x1 = x2;
-		x2 = buffer_x1;
-	}
-	if(y1 > y2)
-	{
-		uint8_t buffer_y1 = y1;
-		y1 = y2;
-		y2 = buffer_y1;
-	}
+	normalize_range(&x1, &x2);
+	normalize_range(&y1, &y2);
 
 	for(uint8_t line=y1; line<=y2; line++)
 	{
@@ -387,7 +404,40 @@ SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, 
 }
 
 
+SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth)
+{
+	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
+		return SH1107_ERROR_INCORRECT_PARAMETER;
 
+	normalize_range(&x1, &x2);
+	normalize_range(&y1, &y2);
+
+	uint8_t w = 1;
+	while(w <= border_weigth)
+	{
+		for(uint8_t i=x1; i<=x2; i++)
+		{
+			SH1107_Draw_Pixel(sh1107, i, y1);
+			SH1107_Draw_Pixel(sh1107, i, y2);
+		}
+		for(uint8_t i=(y1+1); i<=(y2-1); i++)
+		{
+			SH1107_Draw_Pixel(sh1107, x1, i);
+			SH1107_Draw_Pixel(sh1107, x2, i);
+		}
+
+		if((x2-x1) > 2 && (y2-y1) > 2)
+		{
+			x1++; y1++;
+			x2--; y2--;
+		}
+		else
+			break;
+		w++;
+	}
+
+	return SH1107_OK;
+}
 
 
 

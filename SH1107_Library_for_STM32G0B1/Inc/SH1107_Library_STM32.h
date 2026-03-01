@@ -67,6 +67,11 @@ typedef enum{
 	SH1107_MODE_INVERSE = 1
 }SH1107_DisplayMode;
 
+typedef enum{
+	SH1107_DIRECTION_NORMAL  = 0,
+	SH1107_DIRECTION_REVERSE = 1
+}SH1107_DisplayDirection;
+
 typedef struct
 {
 	SPI_HandleTypeDef *hspi;
@@ -81,6 +86,7 @@ typedef struct
 	SH1107_ADRESSING_MODE adressing_mode;
 	SH1107_CONTRAST contrast;
 	SH1107_DisplayMode display_mode;
+	SH1107_DisplayDirection display_direction;
 }SH1107_HandleTypeDef;
 
 SH1107_ERROR SH1107_SetSPI(SH1107_HandleTypeDef *sh1107, SPI_HandleTypeDef *hspi);
@@ -94,6 +100,7 @@ SH1107_ERROR SH1107_CMD_SetMultiplex(SH1107_HandleTypeDef *sh1107, uint8_t multi
 SH1107_ERROR SH1107_CMD_SetAdressingMode(SH1107_HandleTypeDef *sh1107, SH1107_ADRESSING_MODE adress_mode);
 SH1107_ERROR SH1107_CMD_SetContrast(SH1107_HandleTypeDef *sh1107, uint8_t contrast);
 SH1107_ERROR SH1107_CMD_SetDisplayMode(SH1107_HandleTypeDef *sh1107, SH1107_DisplayMode mode);
+SH1107_ERROR SH1107_CMD_SetDirection(SH1107_HandleTypeDef *sh1107, SH1107_DisplayDirection direction);
 SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column);
 SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adress);
 SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, uint8_t page_adress);
@@ -104,5 +111,5 @@ SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t 
 SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page);
 SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
-
+SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth);
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

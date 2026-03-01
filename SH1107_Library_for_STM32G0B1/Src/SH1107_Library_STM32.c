@@ -358,6 +358,35 @@ SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
 }
 
 
+SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
+{
+
+	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
+		return SH1107_ERROR_INCORRECT_PARAMETER;
+
+	if(x1 > x2)
+	{
+		uint8_t buffer_x1 = x1;
+		x1 = x2;
+		x2 = buffer_x1;
+	}
+	if(y1 > y2)
+	{
+		uint8_t buffer_y1 = y1;
+		y1 = y2;
+		y2 = buffer_y1;
+	}
+
+	for(uint8_t line=y1; line<=y2; line++)
+	{
+		for(uint8_t column=x1; column<=x2; column++)
+			SH1107_Draw_Pixel(sh1107, column, line);
+	}
+
+	return SH1107_OK;
+}
+
+
 
 
 

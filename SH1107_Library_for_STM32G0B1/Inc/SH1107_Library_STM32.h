@@ -103,5 +103,6 @@ SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y);
 SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page);
 SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107);
+SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
 
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

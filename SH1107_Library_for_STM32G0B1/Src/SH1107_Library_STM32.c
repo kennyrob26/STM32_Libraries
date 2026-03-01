@@ -8,6 +8,21 @@
 
 #include "SH1107_Library_STM32.h"
 
+uint8_t sh1107_buffer[SH1107_PAGES][SH1107_WIDTH];
+
+uint8_t convertLineToPage(uint8_t target_line)
+{
+	return target_line >> 3; //division for 8
+}
+
+uint8_t convertLineToHex(uint8_t target_line)
+{
+	uint8_t bit_line = target_line % 8;
+	uint8_t bit_hex  = 0x01 << bit_line;
+	return bit_hex;
+}
+
+
 /**
  * @brief Receive SPI Handle
  *
@@ -90,7 +105,10 @@ SH1107_ERROR SH1107_SetPin_Reset(SH1107_HandleTypeDef *sh1107, GPIO_TypeDef *por
  *
  * @param sh1107  is the current instance of the sh1107 display
  * @param dc      Selects Data or Command (DC), receives an SH1107_DC type
- * @param *buffer Is a byte sequence for commands or datas
+ * @param *buffer Is a byte se
+
+/**
+ * @brief Receive SPI Handlequence for commands or datas
  * @param size    This is the size of buffer,
  */
 SH1107_ERROR SH1107_Transmit(SH1107_HandleTypeDef *sh1107, SH1107_DC dc, uint8_t *buffer, uint16_t size)
@@ -215,7 +233,7 @@ SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column)
 
 SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adress)
 {
-	if(page_adress > 15)
+	if(page_adress > 16)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
 	uint8_t cmd_page_adress = 0xB0 | (page_adress & 0x0F);
@@ -241,8 +259,9 @@ SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *
 
 SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data)
 {
+	SH1107_CMD_SetColumn(sh1107, 0);
 	SH1107_CMD_SetPage(sh1107, page);
-	SH1107_CMD_WriteDisplayData(sh1107, data, 128);
+	SH1107_CMD_WriteDisplayData(sh1107, data, SH1107_WIDTH);
 
 	return SH1107_OK;
 }
@@ -256,9 +275,28 @@ SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107)
 	return SH1107_OK;
 }
 
+SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y)
+{
+	uint8_t page = convertLineToPage(y);
+	//SH1107_CMD_SetPage(sh1107, page);
+	//SH1107_CMD_SetColumn(sh1107, x);
 
+	uint8_t byte_column = convertLineToHex(y);
 
+	sh1107_buffer[page][x] |= byte_column;
 
+	//SH1107_CMD_WriteDisplayData(sh1107, &byte_column, 1);
+
+	return SH1107_OK;
+}
+
+SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page)
+{
+	uint8_t *data = sh1107_buffer[page];
+	SH1107_DRAW_Page(sh1107, page, data);
+
+	return SH1107_OK;
+}
 
 
 

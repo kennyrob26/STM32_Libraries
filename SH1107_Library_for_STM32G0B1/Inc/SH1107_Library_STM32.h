@@ -13,6 +13,12 @@
 #define SH1107_MAX_MULTIPLEX 127
 #define SH1107_128x128_MULTIPLEX 127
 
+#define SH1107_WIDTH  128
+#define SH1107_HEIGHT 128
+#define SH1107_PAGES   16
+
+
+
 typedef struct
 {
 	GPIO_TypeDef *port;
@@ -78,5 +84,7 @@ SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, 
 SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size);
 SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data);
 SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107);
+SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y);
+SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page);
 
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

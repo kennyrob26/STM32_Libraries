@@ -8,6 +8,7 @@
 
 #include "SH1107_Library_STM32.h"
 #include "string.h"
+#include <stdlib.h>
 
 
 uint8_t convertLineToPage(uint8_t target_line)
@@ -15,10 +16,14 @@ uint8_t convertLineToPage(uint8_t target_line)
 	return target_line >> 3; //division for 8
 }
 
-uint8_t convertLineToHex(uint8_t target_line)
+uint8_t convertLineToHex(uint8_t target_line, SH1107_PIXEL_STATE color)
 {
 	uint8_t bit_line = target_line % 8;
 	uint8_t bit_hex  = 0x01 << bit_line;
+
+	//if(color == SH1107_PIXEL_OFF)
+	//	bit_hex ^= 0xFF;
+
 	return bit_hex;
 }
 
@@ -347,15 +352,18 @@ SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107)
 	return SH1107_OK;
 }
 
-SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y)
+SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y, SH1107_PIXEL_STATE color)
 {
 	if(x >= SH1107_WIDTH || y >= SH1107_HEIGHT)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
 	uint8_t page = convertLineToPage(y);
-	uint8_t byte_column = convertLineToHex(y);
+	uint8_t byte_column = convertLineToHex(y, color);
 
-	sh1107->buffer[page][x] |= byte_column;
+	if(color == SH1107_PIXEL_ON)
+		sh1107->buffer[page][x] |= byte_column;
+	else if(color == SH1107_PIXEL_OFF)
+		sh1107->buffer[page][x] &= ~byte_column;
 
 	return SH1107_OK;
 }
@@ -386,7 +394,7 @@ SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
 }
 
 
-SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
+SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color)
 {
 	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
@@ -397,14 +405,14 @@ SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, 
 	for(uint8_t line=y1; line<=y2; line++)
 	{
 		for(uint8_t column=x1; column<=x2; column++)
-			SH1107_Draw_Pixel(sh1107, column, line);
+			SH1107_Draw_Pixel(sh1107, column, line, color);
 	}
 
 	return SH1107_OK;
 }
 
 
-SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth)
+SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth, SH1107_PIXEL_STATE color)
 {
 	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
@@ -417,13 +425,13 @@ SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uin
 	{
 		for(uint8_t i=x1; i<=x2; i++)
 		{
-			SH1107_Draw_Pixel(sh1107, i, y1);
-			SH1107_Draw_Pixel(sh1107, i, y2);
+			SH1107_Draw_Pixel(sh1107, i, y1, color);
+			SH1107_Draw_Pixel(sh1107, i, y2, color);
 		}
 		for(uint8_t i=(y1+1); i<=(y2-1); i++)
 		{
-			SH1107_Draw_Pixel(sh1107, x1, i);
-			SH1107_Draw_Pixel(sh1107, x2, i);
+			SH1107_Draw_Pixel(sh1107, x1, i, color);
+			SH1107_Draw_Pixel(sh1107, x2, i, color);
 		}
 
 		if((x2-x1) > 2 && (y2-y1) > 2)
@@ -439,6 +447,37 @@ SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uin
 	return SH1107_OK;
 }
 
+SH1107_ERROR SH1107_Draw_Line(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color)
+{
+	int dx = abs(x2 - x1);
+	int dy = -abs(y2 - y1);
+	int error = dx + dy;
+	int error2 = 0;
+
+	int sx = x1<x2?1:-1;
+	int sy = y1<y2?1:-1;
+
+	while(1)
+	{
+		SH1107_Draw_Pixel(sh1107, x1, y1, color);
+		if(x1==x2 && y1==y2)
+			break;
+		error2 = 2*error;
+		if(error2 >= dy)
+		{
+			error += dy;
+			x1  += sx;
+		}
+		if(error2 <= dx)
+		{
+			error += dx;
+			y1  += sy;
+		}
+
+	}
+
+	return SH1107_OK;
+}
 
 
 

@@ -72,6 +72,11 @@ typedef enum{
 	SH1107_DIRECTION_REVERSE = 1
 }SH1107_DisplayDirection;
 
+typedef enum{
+	SH1107_PIXEL_ON  = 1,
+	SH1107_PIXEL_OFF = 0
+}SH1107_PIXEL_STATE;
+
 typedef struct
 {
 	SPI_HandleTypeDef *hspi;
@@ -107,9 +112,10 @@ SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, 
 SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size);
 SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data);
 SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107);
-SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y);
+SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y, SH1107_PIXEL_STATE color);
 SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page);
 SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107);
-SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2);
-SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth);
+SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color);
+SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth, SH1107_PIXEL_STATE color);
+SH1107_ERROR SH1107_Draw_Line(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color);
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

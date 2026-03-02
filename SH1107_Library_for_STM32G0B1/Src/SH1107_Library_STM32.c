@@ -21,9 +21,6 @@ uint8_t convertLineToHex(uint8_t target_line, SH1107_PIXEL_STATE color)
 	uint8_t bit_line = target_line % 8;
 	uint8_t bit_hex  = 0x01 << bit_line;
 
-	//if(color == SH1107_PIXEL_OFF)
-	//	bit_hex ^= 0xFF;
-
 	return bit_hex;
 }
 
@@ -137,7 +134,8 @@ SH1107_ERROR SH1107_SetPin_Reset(SH1107_HandleTypeDef *sh1107, GPIO_TypeDef *por
 SH1107_ERROR SH1107_Transmit(SH1107_HandleTypeDef *sh1107, SH1107_DC dc, uint8_t *buffer, uint16_t size)
 {
 	HAL_StatusTypeDef errorcode = HAL_OK;
-
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
 	if(sh1107->hspi == NULL)
 		return SH1107_ERROR_SPI_HANDLE_NOT_DEFINED;
 	if(sh1107->cs_pin.port == NULL)
@@ -165,9 +163,10 @@ SH1107_ERROR SH1107_Transmit(SH1107_HandleTypeDef *sh1107, SH1107_DC dc, uint8_t
  */
 SH1107_ERROR SH1107_CMD_Reset(SH1107_HandleTypeDef *sh1107)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
 	if(sh1107->hspi == NULL)
 		return SH1107_ERROR_SPI_HANDLE_NOT_DEFINED;
-
 	if(sh1107->reset_pin.port == NULL || sh1107->cs_pin.port == NULL)
 		return SH1107_ERROR_PIN_NOT_DEFINED;
 
@@ -191,6 +190,9 @@ SH1107_ERROR SH1107_CMD_Reset(SH1107_HandleTypeDef *sh1107)
  */
 SH1107_ERROR SH1107_CMD_Display_ON(SH1107_HandleTypeDef *sh1107, SH1107_Status display_on_off)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	const uint8_t cmd_display_on  = 0xAF;
 	const uint8_t cmd_display_off = 0xAE;
 
@@ -213,6 +215,9 @@ SH1107_ERROR SH1107_CMD_Display_ON(SH1107_HandleTypeDef *sh1107, SH1107_Status d
 
 SH1107_ERROR SH1107_CMD_SetMultiplex(SH1107_HandleTypeDef *sh1107, uint8_t multiplex)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	if(multiplex > SH1107_MAX_MULTIPLEX)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -222,6 +227,9 @@ SH1107_ERROR SH1107_CMD_SetMultiplex(SH1107_HandleTypeDef *sh1107, uint8_t multi
 
 SH1107_ERROR SH1107_CMD_SetAdressingMode(SH1107_HandleTypeDef *sh1107, SH1107_ADRESSING_MODE adress_mode)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	const uint8_t page_adressing_mode 	  = 0x20;
 	const uint8_t vertical_adressing_mode = 0x21;
 
@@ -243,6 +251,9 @@ SH1107_ERROR SH1107_CMD_SetAdressingMode(SH1107_HandleTypeDef *sh1107, SH1107_AD
 
 SH1107_ERROR SH1107_CMD_SetContrast(SH1107_HandleTypeDef *sh1107, uint8_t contrast)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	uint8_t cmd_contrast[2] = {0x81, contrast};
 
 	SH1107_ERROR error_code = SH1107_Transmit(sh1107, SH1107_DC_COMMAND, cmd_contrast, sizeof(cmd_contrast));
@@ -255,6 +266,9 @@ SH1107_ERROR SH1107_CMD_SetContrast(SH1107_HandleTypeDef *sh1107, uint8_t contra
 
 SH1107_ERROR SH1107_CMD_SetDisplayMode(SH1107_HandleTypeDef *sh1107, SH1107_DisplayMode mode)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	uint8_t cmd_mode = 0;
 	if(mode == SH1107_MODE_NORMAL)
 		cmd_mode = 0xA6;
@@ -273,6 +287,9 @@ SH1107_ERROR SH1107_CMD_SetDisplayMode(SH1107_HandleTypeDef *sh1107, SH1107_Disp
 
 SH1107_ERROR SH1107_CMD_SetDirection(SH1107_HandleTypeDef *sh1107, SH1107_DisplayDirection direction)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	uint8_t cmd_direction = 0;
 	if(direction == SH1107_DIRECTION_NORMAL)
 		cmd_direction = 0xA0;
@@ -291,6 +308,9 @@ SH1107_ERROR SH1107_CMD_SetDirection(SH1107_HandleTypeDef *sh1107, SH1107_Displa
 
 SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	if(column >= SH1107_WIDTH)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -304,6 +324,9 @@ SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column)
 
 SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adress)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	if(page_adress >= SH1107_PAGES)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -314,6 +337,9 @@ SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adres
 
 SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, uint8_t page_adress)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	if(column >= SH1107_WIDTH || page_adress >= SH1107_PAGES)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -325,6 +351,8 @@ SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, 
 
 SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
 	if(data == NULL)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -333,6 +361,8 @@ SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *
 
 SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
 	if(data == NULL)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -341,8 +371,11 @@ SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_
 	return SH1107_OK;
 }
 
-SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107)
+SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	uint8_t clearn_page[SH1107_WIDTH] = {0x00};
 
 	for(uint8_t i=0; i<SH1107_PAGES; i++)
@@ -354,6 +387,8 @@ SH1107_ERROR SH1107_CMD_ClearDisplay(SH1107_HandleTypeDef *sh1107)
 
 SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y, SH1107_PIXEL_STATE color)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
 	if(x >= SH1107_WIDTH || y >= SH1107_HEIGHT)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -370,6 +405,8 @@ SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t 
 
 SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
 	if(page >= SH1107_PAGES)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -384,6 +421,9 @@ SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page)
 
 SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	uint8_t page = 0;
 	while(page < SH1107_PAGES)
 	{
@@ -396,6 +436,9 @@ SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
 
 SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
 	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -414,6 +457,8 @@ SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, 
 
 SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth, SH1107_PIXEL_STATE color)
 {
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
 	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
@@ -449,29 +494,36 @@ SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uin
 
 SH1107_ERROR SH1107_Draw_Line(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color)
 {
-	int dx = abs(x2 - x1);
-	int dy = -abs(y2 - y1);
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
+		return SH1107_ERROR_INCORRECT_PARAMETER;
+
+	int dx = abs((int)x2 - (int)x1);
+	int dy = -abs((int)y2 - (int)y1);
 	int error = dx + dy;
 	int error2 = 0;
 
-	int sx = x1<x2?1:-1;
-	int sy = y1<y2?1:-1;
+	int sx = x1<x2 ? 1: -1;
+	int sy = y1<y2 ? 1: -1;
 
 	while(1)
 	{
 		SH1107_Draw_Pixel(sh1107, x1, y1, color);
 		if(x1==x2 && y1==y2)
 			break;
-		error2 = 2*error;
+
+		error2 = (error << 1); // error*2
+
 		if(error2 >= dy)
 		{
 			error += dy;
-			x1  += sx;
+			x1    += sx;
 		}
 		if(error2 <= dx)
 		{
 			error += dx;
-			y1  += sy;
+			y1    += sy;
 		}
 
 	}

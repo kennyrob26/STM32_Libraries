@@ -366,12 +366,14 @@ SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_
 	if(data == NULL)
 		return SH1107_ERROR_INCORRECT_PARAMETER;
 
+	sh1107->write_pages[page] = SH1107_PAGE_WRITTEN;
+
 	memcpy(sh1107->buffer[page], data, SH1107_WIDTH);
 
 	return SH1107_OK;
 }
 
-SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
+SH1107_ERROR SH1107_Draw_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
 {
 	if(sh1107 == NULL)
 		return SH1107_ERROR_SH1107_NOT_DEFINED;
@@ -379,9 +381,23 @@ SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
 	uint8_t clearn_page[SH1107_WIDTH] = {0x00};
 
 	for(uint8_t i=0; i<SH1107_PAGES; i++)
+	{
 		SH1107_DRAW_Page(sh1107, i, clearn_page);
+		//sh1107->write_pages[i] = SH1107_PAGE_EMPTY;
+	}
 
+	return SH1107_OK;
+}
+
+
+SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
+{
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
+	SH1107_Draw_ClearnDisplay(sh1107);
 	SH1107_Update_Display(sh1107);
+
 	return SH1107_OK;
 }
 
@@ -400,6 +416,8 @@ SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t 
 	else if(color == SH1107_PIXEL_OFF)
 		sh1107->buffer[page][x] &= ~byte_column;
 
+	sh1107->write_pages[page] = SH1107_PAGE_WRITTEN;
+
 	return SH1107_OK;
 }
 
@@ -415,7 +433,6 @@ SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page)
 	SH1107_CMD_SetCursor(sh1107, 0, page);
 	SH1107_CMD_WriteDisplayData(sh1107, data, SH1107_WIDTH);
 
-
 	return SH1107_OK;
 }
 
@@ -427,7 +444,12 @@ SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
 	uint8_t page = 0;
 	while(page < SH1107_PAGES)
 	{
-		SH1107_Update_Page(sh1107, page);
+		if(sh1107->write_pages[page] == SH1107_PAGE_WRITTEN)
+		{
+			SH1107_Update_Page(sh1107, page);
+
+		}
+		sh1107->write_pages[page] = SH1107_PAGE_NO_WRITTEN;
 		page++;
 	}
 	return SH1107_OK;

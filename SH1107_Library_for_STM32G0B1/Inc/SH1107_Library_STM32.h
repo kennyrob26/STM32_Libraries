@@ -77,6 +77,11 @@ typedef enum{
 	SH1107_PIXEL_OFF = 0
 }SH1107_PIXEL_STATE;
 
+typedef enum{
+	SH1107_PAGE_NO_WRITTEN = 0,
+	SH1107_PAGE_WRITTEN    = 1
+}SH1107_PAGE_WRITE_STATUS;
+
 typedef struct
 {
 	SPI_HandleTypeDef *hspi;
@@ -86,6 +91,7 @@ typedef struct
 	SH1107_GPIO_t reset_pin;
 
 	uint8_t buffer[SH1107_PAGES][SH1107_WIDTH];
+	uint8_t write_pages[SH1107_PAGES];
 
 	SH1107_Status display_status;
 	SH1107_ADRESSING_MODE adressing_mode;
@@ -111,6 +117,7 @@ SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adres
 SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, uint8_t page_adress);
 SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size);
 SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data);
+SH1107_ERROR SH1107_Draw_ClearnDisplay(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y, SH1107_PIXEL_STATE color);
 SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page);

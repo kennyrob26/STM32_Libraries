@@ -17,7 +17,19 @@
 #define SH1107_HEIGHT 128
 #define SH1107_PAGES   16
 
+#define SH1107_ALLBYTES SH1107_PAGES * SH1107_WIDTH
 
+typedef union{
+	uint8_t allPixels[SH1107_ALLBYTES];
+	uint8_t pages[SH1107_PAGES][SH1107_WIDTH];
+}SH1107_BUFFER;
+
+typedef struct
+{
+	uint8_t write;
+	uint8_t min_x;
+	uint8_t max_x;
+}SH1107_Page_Write;
 
 typedef struct
 {
@@ -90,8 +102,8 @@ typedef struct
 	SH1107_GPIO_t dc_pin;
 	SH1107_GPIO_t reset_pin;
 
-	uint8_t buffer[SH1107_PAGES][SH1107_WIDTH];
-	uint8_t write_pages[SH1107_PAGES];
+	SH1107_BUFFER buffer;
+	SH1107_Page_Write page[SH1107_PAGES];
 
 	SH1107_Status display_status;
 	SH1107_ADRESSING_MODE adressing_mode;

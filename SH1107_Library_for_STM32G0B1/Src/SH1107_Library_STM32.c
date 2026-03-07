@@ -7,16 +7,15 @@
 
 
 #include "SH1107_Library_STM32.h"
-#include "string.h"
-#include <stdlib.h>
 
 
-static inline uint8_t convertLineToPage(uint8_t target_line)
+
+uint8_t convertLineToPage(uint8_t target_line)
 {
 	return target_line >> 3; //division for 8
 }
 
-static inline uint8_t convertLineToHex(uint8_t target_line, SH1107_PIXEL_STATE color)
+uint8_t convertLineToHex(uint8_t target_line, SH1107_PIXEL_STATE color)
 {
 	uint8_t bit_line = target_line % 8;
 	uint8_t bit_hex  = 0x01 << bit_line;
@@ -24,7 +23,7 @@ static inline uint8_t convertLineToHex(uint8_t target_line, SH1107_PIXEL_STATE c
 	return bit_hex;
 }
 
-static inline void normalize_range(uint8_t *v1, uint8_t *v2)
+void normalize_range(uint8_t *v1, uint8_t *v2)
 {
 	if(*v1 > *v2)
 	{
@@ -126,9 +125,6 @@ SH1107_ERROR SH1107_SetPin_Reset(SH1107_HandleTypeDef *sh1107, GPIO_TypeDef *por
  * @param sh1107  is the current instance of the sh1107 display
  * @param dc      Selects Data or Command (DC), receives an SH1107_DC type
  * @param *buffer Is a byte se
-
-/**
- * @brief Receive SPI Handlequence for commands or datas
  * @param size    This is the size of buffer,
  */
 SH1107_ERROR SH1107_Transmit(SH1107_HandleTypeDef *sh1107, SH1107_DC dc, uint8_t *buffer, uint16_t size)
@@ -161,7 +157,7 @@ SH1107_ERROR SH1107_Transmit(SH1107_HandleTypeDef *sh1107, SH1107_DC dc, uint8_t
  *
  * @param sh1107  is the current instance of the sh1107 display
  */
-SH1107_ERROR SH1107_CMD_Reset(SH1107_HandleTypeDef *sh1107)
+SH1107_ERROR SH1107_CMD_ResetDisplay(SH1107_HandleTypeDef *sh1107)
 {
 	if(sh1107 == NULL)
 		return SH1107_ERROR_SH1107_NOT_DEFINED;
@@ -359,48 +355,12 @@ SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *
 	return SH1107_Transmit(sh1107, SH1107_DC_DATA, data, size);
 }
 
-SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data)
+
+
+SH1107_ERROR SH1107_CMD_ForceDisplayUpdate(SH1107_HandleTypeDef *sh1107)
 {
 	if(sh1107 == NULL)
-		return SH1107_ERROR_SH1107_NOT_DEFINED;
-	if(data == NULL)
-		return SH1107_ERROR_INCORRECT_PARAMETER;
-
-
-	sh1107->page[page].write = SH1107_PAGE_WRITTEN;
-
-	memcpy(sh1107->buffer.pages[page], data, SH1107_WIDTH);
-
-	return SH1107_OK;
-}
-
-SH1107_ERROR SH1107_Draw_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
-{
-	if(sh1107 == NULL)
-		return SH1107_ERROR_SH1107_NOT_DEFINED;
-
-	memset(sh1107->buffer.allPixels, 0x00, SH1107_ALLBYTES);
-	for(uint8_t i=0; i<SH1107_PAGES; i++)
-	{
-		sh1107->page[i].max_x = (SH1107_WIDTH - 1);
-		sh1107->page[i].min_x = 0;
-		sh1107->page[i].write = SH1107_PAGE_WRITTEN;
-	}
-
-
-	return SH1107_OK;
-}
-
-
-SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
-{
-	if(sh1107 == NULL)
-		return SH1107_ERROR_SH1107_NOT_DEFINED;
-
-	//SH1107_Draw_ClearnDisplay(sh1107);
-	//SH1107_Update_Display(sh1107);
-
-	memset(sh1107->buffer.allPixels, 0x00, SH1107_ALLBYTES);
+			return SH1107_ERROR_SH1107_NOT_DEFINED;
 
 	for(uint8_t page=0;page<SH1107_PAGES; page++)
 	{
@@ -411,36 +371,25 @@ SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
 		sh1107->page[page].write = SH1107_PAGE_NO_WRITTEN;
 	}
 
-
 	return SH1107_OK;
 }
 
-SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y, SH1107_PIXEL_STATE color)
+
+
+
+SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107)
 {
 	if(sh1107 == NULL)
 		return SH1107_ERROR_SH1107_NOT_DEFINED;
-	if(x >= SH1107_WIDTH || y >= SH1107_HEIGHT)
-		return SH1107_ERROR_INCORRECT_PARAMETER;
 
-	uint8_t page = convertLineToPage(y);
-	uint8_t byte_column = convertLineToHex(y, color);
+	memset(sh1107->buffer.allPixels, 0x00, SH1107_ALLBYTES);
 
-	if(color == SH1107_PIXEL_ON)
-		sh1107->buffer.pages[page][x] |= byte_column;
-	else if(color == SH1107_PIXEL_OFF)
-		sh1107->buffer.pages[page][x] &= ~byte_column;
-
-	sh1107->page[page].write = SH1107_PAGE_WRITTEN;
-
-	if(sh1107->page[page].min_x > x)
-		sh1107->page[page].min_x = x;
-	if(sh1107->page[page].max_x < x)
-		sh1107->page[page].max_x = x;
+	SH1107_CMD_ForceDisplayUpdate(sh1107);
 
 	return SH1107_OK;
 }
 
-SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page)
+SH1107_ERROR SH1107_CMD_UpdatePage(SH1107_HandleTypeDef *sh1107, uint8_t page)
 {
 	if(sh1107 == NULL)
 		return SH1107_ERROR_SH1107_NOT_DEFINED;
@@ -468,7 +417,7 @@ SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page)
 	return SH1107_OK;
 }
 
-SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
+SH1107_ERROR SH1107_CMD_UpdateDisplay(SH1107_HandleTypeDef *sh1107)
 {
 	if(sh1107 == NULL)
 		return SH1107_ERROR_SH1107_NOT_DEFINED;
@@ -477,137 +426,12 @@ SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107)
 	while(page < SH1107_PAGES)
 	{
 
-		SH1107_Update_Page(sh1107, page);
-		page++;
-	}
-	return SH1107_OK;
-}
-/*
-SH1107_ERROR SH1107_Update_DisplayBlock(SH1107_HandleTypeDef *sh1107)
-{
-	if(sh1107 == NULL)
-		return SH1107_ERROR_SH1107_NOT_DEFINED;
-
-	uint8_t page = 0;
-	while(page < SH1107_PAGES)
-	{
-		if(sh1107->write_pages[page] == SH1107_PAGE_WRITTEN)
-		{
-			SH1107_CMD_SetPage(sh1107, page);
-			for(uint8_t i=0; i<SH1107_BLOCKS; i++)
-			{
-				if(sh1107->write_blocks[page][i] == SH1107_PAGE_WRITTEN)
-				{
-					SH1107_Update_Block(sh1107, i, page);
-				}
-
-				sh1107->write_blocks[page][i] = SH1107_PAGE_NO_WRITTEN;
-			}
-
-		}
-		sh1107->write_pages[page] = SH1107_PAGE_NO_WRITTEN;
+		SH1107_CMD_UpdatePage(sh1107, page);
 		page++;
 	}
 	return SH1107_OK;
 }
 
-*/
-SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color)
-{
-	if(sh1107 == NULL)
-		return SH1107_ERROR_SH1107_NOT_DEFINED;
-
-	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
-		return SH1107_ERROR_INCORRECT_PARAMETER;
-
-	normalize_range(&x1, &x2);
-	normalize_range(&y1, &y2);
-
-	for(uint8_t line=y1; line<=y2; line++)
-	{
-		for(uint8_t column=x1; column<=x2; column++)
-			SH1107_Draw_Pixel(sh1107, column, line, color);
-	}
-
-	return SH1107_OK;
-}
-
-
-SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth, SH1107_PIXEL_STATE color)
-{
-	if(sh1107 == NULL)
-		return SH1107_ERROR_SH1107_NOT_DEFINED;
-	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
-		return SH1107_ERROR_INCORRECT_PARAMETER;
-
-	normalize_range(&x1, &x2);
-	normalize_range(&y1, &y2);
-
-	uint8_t w = 1;
-	while(w <= border_weigth)
-	{
-		for(uint8_t i=x1; i<=x2; i++)
-		{
-			SH1107_Draw_Pixel(sh1107, i, y1, color);
-			SH1107_Draw_Pixel(sh1107, i, y2, color);
-		}
-		for(uint8_t i=(y1+1); i<=(y2-1); i++)
-		{
-			SH1107_Draw_Pixel(sh1107, x1, i, color);
-			SH1107_Draw_Pixel(sh1107, x2, i, color);
-		}
-
-		if((x2-x1) > 2 && (y2-y1) > 2)
-		{
-			x1++; y1++;
-			x2--; y2--;
-		}
-		else
-			break;
-		w++;
-	}
-
-	return SH1107_OK;
-}
-
-SH1107_ERROR SH1107_Draw_Line(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color)
-{
-	if(sh1107 == NULL)
-		return SH1107_ERROR_SH1107_NOT_DEFINED;
-	if(x1 >= SH1107_WIDTH  || x2 >= SH1107_WIDTH || y1 >= SH1107_HEIGHT || y2 >= SH1107_HEIGHT)
-		return SH1107_ERROR_INCORRECT_PARAMETER;
-
-	int dx = abs((int)x2 - (int)x1);
-	int dy = -abs((int)y2 - (int)y1);
-	int error = dx + dy;
-	int error2 = 0;
-
-	int sx = x1<x2 ? 1: -1;
-	int sy = y1<y2 ? 1: -1;
-
-	while(1)
-	{
-		SH1107_Draw_Pixel(sh1107, x1, y1, color);
-		if(x1==x2 && y1==y2)
-			break;
-
-		error2 = (error << 1); // error*2
-
-		if(error2 >= dy)
-		{
-			error += dy;
-			x1    += sx;
-		}
-		if(error2 <= dx)
-		{
-			error += dx;
-			y1    += sy;
-		}
-
-	}
-
-	return SH1107_OK;
-}
 
 
 

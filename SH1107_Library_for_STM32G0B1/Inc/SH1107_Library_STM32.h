@@ -10,6 +10,9 @@
 
 #include "stm32g0xx_hal.h"
 
+#include "string.h"
+#include <stdlib.h>
+
 #define SH1107_MAX_MULTIPLEX 	 0x7FU
 #define SH1107_128x128_MULTIPLEX 0x7FU
 
@@ -112,12 +115,19 @@ typedef struct
 	SH1107_DisplayDirection display_direction;
 }SH1107_HandleTypeDef;
 
+
+uint8_t convertLineToPage(uint8_t target_line);
+uint8_t convertLineToHex(uint8_t target_line, SH1107_PIXEL_STATE color);
+void normalize_range(uint8_t *v1, uint8_t *v2);
+
+
 SH1107_ERROR SH1107_SetSPI(SH1107_HandleTypeDef *sh1107, SPI_HandleTypeDef *hspi);
 SH1107_ERROR SH1107_SetPin_Cs(SH1107_HandleTypeDef *sh1107,GPIO_TypeDef *port, uint16_t pin);
 SH1107_ERROR SH1107_SetPin_Dc(SH1107_HandleTypeDef *sh1107, GPIO_TypeDef *port, uint16_t pin);
 SH1107_ERROR SH1107_SetPin_Reset(SH1107_HandleTypeDef *sh1107, GPIO_TypeDef *port, uint16_t pin);
 SH1107_ERROR SH1107_Transmit(SH1107_HandleTypeDef *sh1107, SH1107_DC dc, uint8_t *buffer, uint16_t size);
-SH1107_ERROR SH1107_CMD_Reset(SH1107_HandleTypeDef *sh1107);
+
+SH1107_ERROR SH1107_CMD_ResetDisplay(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_CMD_Display_ON(SH1107_HandleTypeDef *sh1107, SH1107_Status display_on_off);
 SH1107_ERROR SH1107_CMD_SetMultiplex(SH1107_HandleTypeDef *sh1107, uint8_t multiplex);
 SH1107_ERROR SH1107_CMD_SetAdressingMode(SH1107_HandleTypeDef *sh1107, SH1107_ADRESSING_MODE adress_mode);
@@ -128,13 +138,9 @@ SH1107_ERROR SH1107_CMD_SetColumn(SH1107_HandleTypeDef *sh1107, uint8_t column);
 SH1107_ERROR SH1107_CMD_SetPage(SH1107_HandleTypeDef *sh1107, uint8_t page_adress);
 SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, uint8_t page_adress);
 SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size);
-SH1107_ERROR SH1107_DRAW_Page(SH1107_HandleTypeDef *sh1107, uint8_t page, uint8_t *data);
-SH1107_ERROR SH1107_Draw_ClearnDisplay(SH1107_HandleTypeDef *sh1107);
+SH1107_ERROR SH1107_CMD_ForceDisplayUpdate(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107);
-SH1107_ERROR SH1107_Draw_Pixel(SH1107_HandleTypeDef *sh1107, uint8_t x, uint8_t y, SH1107_PIXEL_STATE color);
-SH1107_ERROR SH1107_Update_Page(SH1107_HandleTypeDef *sh1107, uint8_t page);
-SH1107_ERROR SH1107_Update_Display(SH1107_HandleTypeDef *sh1107);
-SH1107_ERROR SH1107_Draw_FillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color);
-SH1107_ERROR SH1107_Draw_Rectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth, SH1107_PIXEL_STATE color);
-SH1107_ERROR SH1107_Draw_Line(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color);
+SH1107_ERROR SH1107_CMD_UpdatePage(SH1107_HandleTypeDef *sh1107, uint8_t page);
+SH1107_ERROR SH1107_CMD_UpdateDisplay(SH1107_HandleTypeDef *sh1107);
+
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

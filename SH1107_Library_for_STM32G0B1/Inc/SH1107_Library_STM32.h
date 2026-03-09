@@ -140,7 +140,7 @@ SH1107_ERROR SH1107_CMD_SetCursor(SH1107_HandleTypeDef *sh1107, uint8_t column, 
 SH1107_ERROR SH1107_CMD_WriteDisplayData(SH1107_HandleTypeDef *sh1107, uint8_t *data, uint16_t size);
 SH1107_ERROR SH1107_CMD_ForceDisplayUpdate(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_CMD_ClearnDisplay(SH1107_HandleTypeDef *sh1107);
-SH1107_ERROR SH1107_CMD_UpdatePage(SH1107_HandleTypeDef *sh1107, uint8_t page);
-SH1107_ERROR SH1107_CMD_UpdateDisplay(SH1107_HandleTypeDef *sh1107);
+
+
 
 #endif /* INC_SH1107_LIBRARY_STM32_H_ */

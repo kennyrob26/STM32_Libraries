@@ -19,6 +19,8 @@ SH1107_ERROR SH1107_GFX_UpdatePage(SH1107_HandleTypeDef *sh1107, uint8_t page, u
 SH1107_ERROR SH1107_GFX_DrawFillRetangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color);
 SH1107_ERROR SH1107_GFX_DrawRectangle(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t border_weigth, SH1107_PIXEL_STATE color);
 SH1107_ERROR SH1107_GFX_DrawLine(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SH1107_PIXEL_STATE color);
+SH1107_ERROR SH1107_GFX_PrintPage(SH1107_HandleTypeDef *sh1107, uint8_t page);
+SH1107_ERROR SH1107_GFX_PrintDisplay(SH1107_HandleTypeDef *sh1107);
 SH1107_ERROR SH1107_GFX_DrawFrame(SH1107_HandleTypeDef *sh1107, uint8_t *dataFrame, uint16_t size);
 SH1107_ERROR SH1107_GFX_PrintFrame(SH1107_HandleTypeDef *sh1107, uint8_t *datframe, uint16_t size);
-SH1107_ERROR SH1107_GFX_PrintGif(SH1107_HandleTypeDef *sh1107, uint8_t *frames, uint8_t size, uint8_t time_frames);
+SH1107_ERROR SH1107_GFX_PrintGif(SH1107_HandleTypeDef *sh1107, uint8_t *frames, uint8_t size, uint16_t time_frames);

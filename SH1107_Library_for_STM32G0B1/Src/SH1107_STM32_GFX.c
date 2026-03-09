@@ -166,6 +166,49 @@ SH1107_ERROR SH1107_GFX_DrawLine(SH1107_HandleTypeDef *sh1107, uint8_t x1, uint8
 	return SH1107_OK;
 }
 
+SH1107_ERROR SH1107_GFX_PrintPage(SH1107_HandleTypeDef *sh1107, uint8_t page)
+{
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+	if(page >= SH1107_PAGES)
+		return SH1107_ERROR_INCORRECT_PARAMETER;
+
+
+	if(sh1107->page[page].write == SH1107_PAGE_WRITTEN)
+	{
+		uint8_t initial_column = sh1107->page[page].min_x;
+		uint8_t max_column     = sh1107->page[page].max_x - sh1107->page[page].min_x;
+
+		uint8_t *data = &sh1107->buffer.pages[page][initial_column];
+
+		SH1107_CMD_SetCursor(sh1107, initial_column, page);
+		SH1107_CMD_WriteDisplayData(sh1107, data, (max_column + 1));
+
+		sh1107->page[page].max_x = 0;
+		sh1107->page[page].min_x = 127;
+
+	}
+
+	sh1107->page[page].write = SH1107_PAGE_NO_WRITTEN;
+
+	return SH1107_OK;
+}
+
+SH1107_ERROR SH1107_GFX_PrintDisplay(SH1107_HandleTypeDef *sh1107)
+{
+	if(sh1107 == NULL)
+		return SH1107_ERROR_SH1107_NOT_DEFINED;
+
+	uint8_t page = 0;
+	while(page < SH1107_PAGES)
+	{
+
+		SH1107_GFX_PrintPage(sh1107, page);
+		page++;
+	}
+	return SH1107_OK;
+}
+
 SH1107_ERROR SH1107_GFX_DrawFrame(SH1107_HandleTypeDef *sh1107, uint8_t *dataFrame, uint16_t size)
 {
 	if(sh1107 == NULL)
@@ -174,6 +217,7 @@ SH1107_ERROR SH1107_GFX_DrawFrame(SH1107_HandleTypeDef *sh1107, uint8_t *dataFra
 	memcpy(sh1107->buffer.allPixels, dataFrame, size);
 
 	return SH1107_OK;
+
 }
 
 SH1107_ERROR SH1107_GFX_PrintFrame(SH1107_HandleTypeDef *sh1107, uint8_t *datframe, uint16_t size)
@@ -186,7 +230,7 @@ SH1107_ERROR SH1107_GFX_PrintFrame(SH1107_HandleTypeDef *sh1107, uint8_t *datfra
 
 	return SH1107_OK;
 }
-SH1107_ERROR SH1107_GFX_PrintGif(SH1107_HandleTypeDef *sh1107, uint8_t *frames, uint8_t size, uint8_t time_frames)
+SH1107_ERROR SH1107_GFX_PrintGif(SH1107_HandleTypeDef *sh1107, uint8_t *frames, uint8_t size, uint16_t time_frames)
 {
 	if(sh1107 == NULL)
 			return SH1107_ERROR_SH1107_NOT_DEFINED;

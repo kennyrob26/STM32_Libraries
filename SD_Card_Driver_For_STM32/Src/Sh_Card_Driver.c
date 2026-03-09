@@ -8,44 +8,63 @@
 
 #include "Sd_Card_Driver.h"
 
-void SD_SetSPI(SD_HandleTypeDef *sd, SPI_HandleTypeDef *spi)
+SD_ERROR SD_SPI_SetSPI(SD_HandleTypeDef *sd, SPI_HandleTypeDef *spi)
 {
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+	if(spi == NULL)
+		return SD_ERROR_NO_SPI_HANDLER_DEFINED;
+
 	sd->hspi = spi;
+
+	return SD_ERROR_OK;
 }
 
-void SD_SetPin_CS(SD_HandleTypeDef *sd, GPIO_TypeDef *cs_port, uint16_t cs_pin)
+SD_ERROR SD_SPI_SetCsPin(SD_HandleTypeDef *sd, GPIO_TypeDef *cs_port, uint16_t cs_pin)
 {
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+	if(cs_port == NULL)
+		return SD_ERROR_NO_SPI_CS_DEFINED;
+
 	sd->cs_pin.port = cs_port;
 	sd->cs_pin.pin  = cs_pin;
+
+	return SD_ERROR_OK;
 }
 
-void SD_EnterSpiMode(SD_HandleTypeDef *sd)
+SD_ERROR SD_SPI_EnterSpiMode(SD_HandleTypeDef *sd)
 {
-	HAL_Delay(100);
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+	if(sd->cs_pin.port == NULL)
+		return SD_ERROR_NO_SPI_CS_DEFINED;
 
 	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 1);
 	uint8_t initSd_spiMode[10] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};   //80 pulsos de clock com MOSI em HIGH;
 	HAL_SPI_Transmit(sd->hspi, initSd_spiMode, sizeof(initSd_spiMode), 10);
 
 
-	//HAL_GPIO_WritePin(GPIOB, sd_cs_Pin, 1);
 	HAL_SPI_Transmit(sd->hspi, initSd_spiMode, sizeof(initSd_spiMode), 10);
 
 }
 
-int16_t spi_waiting_response(SD_HandleTypeDef *sd, uint16_t response_timeout)
+SD_R1_Response SD_SPI_WaitingResponse(SD_HandleTypeDef *sd, uint16_t response_timeout)
 {
+	if(sd == NULL)
+		return SD_R1_ERROR;
+
 	int16_t rx = 0xFF;
 	uint8_t dummy_byte = 0xFF;
 
 	uint32_t initial_time  = HAL_GetTick();
 
 	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
-	while(rx == 0xFF)
+	while(rx == SD_R1_NO_RESPONSE)
 	{
 		if((HAL_GetTick() - initial_time) > response_timeout)
 		{
-			rx = -1;
+			rx = SD_R1_TIMEOUT;
 			break;
 		}
 
@@ -58,8 +77,11 @@ int16_t spi_waiting_response(SD_HandleTypeDef *sd, uint16_t response_timeout)
 
 }
 
-int16_t SD_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint32_t argument, uint16_t timeout_response)
+SD_R1_Response SD_SPI_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint32_t argument, uint16_t timeout_response)
 {
+	if(sd == NULL || command_id > 63)
+		return SD_R1_ERROR;
+
 	uint8_t cmd[6] = {0x00};
 
 	if(command_id > 63)
@@ -81,5 +103,58 @@ int16_t SD_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint32_t argume
 	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
 	HAL_SPI_Transmit(sd->hspi, cmd, sizeof(cmd), 10);
 
-	return spi_waiting_response(sd, 10);
+	return SD_SPI_WaitingResponse(sd, timeout_response);
 }
+
+SD_R1_Response SD_CMD_ResetSdCard(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_R1_ERROR;
+
+	const uint8_t  cmd_resetSD   = 0x00;
+	const uint8_t argument      = 0x00;
+	const uint8_t  timeout       = 10;
+
+	return SD_SPI_TransmitCMD(sd, cmd_resetSD, (uint32_t)argument, (uint16_t)timeout);
+}
+
+SD_R1_Response SD_CMD_SetAppCommand(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_R1_ERROR;
+
+	const uint8_t  cmd_App    =   55;
+	const uint8_t argument   = 0x00;
+	const uint8_t  timeout    =   10;
+
+	return SD_SPI_TransmitCMD(sd, cmd_App, (uint32_t)argument, (uint16_t)timeout);
+
+}
+
+SD_R1_Response SD_CMD_AppInitSD(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_R1_ERROR;
+
+	const uint8_t  cmd_initSd =   41;
+	const uint8_t  argument   = 0x00;
+	const uint8_t  timeout    =   10;
+
+	return SD_SPI_TransmitCMD(sd, cmd_initSd, (uint32_t)argument, (uint16_t)timeout);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

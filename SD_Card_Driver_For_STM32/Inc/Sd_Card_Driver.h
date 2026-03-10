@@ -30,18 +30,29 @@ typedef enum
 	SD_ERROR_NO_HANDLER_DEFINED     = 1,
 	SD_ERROR_NO_SPI_HANDLER_DEFINED = 2,
 	SD_ERROR_NO_SPI_CS_DEFINED      = 3,
-	SD_ERROR_TIMEOUT                = 4
+	SD_ERROR_TIMEOUT                = 4,
+	SD_ERROR_NO_INIT                = 5
 }SD_ERROR;
 
 typedef enum
 {
 	SD_R1_OK 		  =  0x0,
-	SD_R1_BUSY        =  0x01,
+	SD_R1_IDLE        =  0x01,
 	SD_R1_NO_RESPONSE =  0xFF,
 	SD_R1_ERROR       =  -1,
 	SD_R1_TIMEOUT     =  -2
 
 }SD_R1_Response;
+
+typedef enum
+{
+	SD_INIT_OK                = 0,
+	SD_INIT_ENTER_SPI_MODE    = 1,
+	SD_INIT_RESET_SD_CARD     = 2,
+	SD_INIT_SET_APP_CMD       = 3,
+	SD_INIT_SEND_APP_INIT_CMD = 4,
+	SD_INIT_ERROR             = 5
+}SD_Init_Status;
 
 
 SD_ERROR SD_SPI_SetSPI(SD_HandleTypeDef *sd, SPI_HandleTypeDef *spi);
@@ -52,5 +63,6 @@ SD_R1_Response SD_SPI_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint
 SD_R1_Response SD_CMD_ResetSdCard(SD_HandleTypeDef *sd);
 SD_R1_Response SD_CMD_SetAppCommand(SD_HandleTypeDef *sd);
 SD_R1_Response SD_CMD_AppInitSD(SD_HandleTypeDef *sd);
+SD_ERROR SD_Init(SD_HandleTypeDef *sd);
 
 #endif /* SD_CARD_DRIVER_FOR_STM32_INC_SD_CARD_DRIVER_H_ */

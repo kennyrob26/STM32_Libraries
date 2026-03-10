@@ -47,6 +47,8 @@ SD_ERROR SD_SPI_EnterSpiMode(SD_HandleTypeDef *sd)
 
 	HAL_SPI_Transmit(sd->hspi, initSd_spiMode, sizeof(initSd_spiMode), 10);
 
+	return SD_ERROR_OK;
+
 }
 
 SD_R1_Response SD_SPI_WaitingResponse(SD_HandleTypeDef *sd, uint16_t response_timeout)
@@ -141,6 +143,82 @@ SD_R1_Response SD_CMD_AppInitSD(SD_HandleTypeDef *sd)
 	const uint8_t  timeout    =   10;
 
 	return SD_SPI_TransmitCMD(sd, cmd_initSd, (uint32_t)argument, (uint16_t)timeout);
+}
+
+SD_ERROR SD_Init(SD_HandleTypeDef *sd)
+{
+	  //SD_SPI_SetSPI(&sd_card, &hspi1);
+	  //SD_SPI_SetCsPin(&sd_card, GPIOB, sd_cs_Pin);
+
+	SD_Init_Status stateSd = SD_INIT_ENTER_SPI_MODE;
+	SD_R1_Response r1_response;
+
+	while(stateSd != SD_INIT_OK)
+	{
+		switch (stateSd)
+		{
+			case SD_INIT_ENTER_SPI_MODE:
+				if(SD_SPI_EnterSpiMode(sd) == SD_ERROR_OK)
+					stateSd = SD_INIT_RESET_SD_CARD;
+				else
+					stateSd = SD_INIT_ERROR;
+			break;
+			case SD_INIT_RESET_SD_CARD:
+				r1_response = SD_CMD_ResetSdCard(sd);
+				switch(r1_response)
+				{
+					case SD_R1_IDLE:
+						stateSd = SD_INIT_SET_APP_CMD;
+					break;
+					case SD_R1_NO_RESPONSE:
+						stateSd = SD_INIT_ENTER_SPI_MODE;
+					break;
+					default:
+						stateSd = SD_INIT_ERROR;
+				}
+			break;
+			case SD_INIT_SET_APP_CMD:
+				r1_response = SD_CMD_SetAppCommand(sd);
+
+				switch(r1_response)
+				{
+					case SD_R1_IDLE:
+						stateSd = SD_INIT_SEND_APP_INIT_CMD;
+					break;
+					case SD_R1_NO_RESPONSE:
+						stateSd = SD_INIT_ENTER_SPI_MODE;
+					break;
+					default:
+						stateSd = SD_INIT_ERROR;
+				}
+			break;
+			case SD_INIT_SEND_APP_INIT_CMD:
+				r1_response = SD_CMD_AppInitSD(sd);
+
+				switch(r1_response)
+				{
+					case SD_R1_IDLE:
+						stateSd = SD_INIT_SET_APP_CMD;
+					break;
+					case SD_R1_OK:
+						stateSd = SD_INIT_OK;
+					break;
+					case SD_R1_NO_RESPONSE:
+						stateSd = SD_INIT_ENTER_SPI_MODE;
+					break;
+					default:
+						stateSd = SD_INIT_ERROR;
+				}
+			break;
+			case SD_INIT_ERROR:
+				return SD_ERROR_NO_INIT;
+			default:
+				break;
+		}
+	}
+
+	return SD_ERROR_OK;
+
 }
 
 

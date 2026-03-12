@@ -11,6 +11,8 @@
 
 #include "stm32g0xx_hal.h"
 
+#define SD_BLOCK_SIZE 512
+
 typedef struct
 {
 	GPIO_TypeDef *port;
@@ -51,8 +53,16 @@ typedef enum
 	SD_INIT_RESET_SD_CARD     = 2,
 	SD_INIT_SET_APP_CMD       = 3,
 	SD_INIT_SEND_APP_INIT_CMD = 4,
-	SD_INIT_ERROR             = 5
+	SD_INIT_ERROR_TIMEOUT     = 5,
+	SD_INIT_ERROR             = 6
 }SD_Init_Status;
+
+typedef enum
+{
+	SD_TOKEN_READ_START  = 0xFE,
+	SD_TOKEN_WRITE_START = 0xFC,
+	SD_TOKEN_WRITE_STOP  = 0xFD
+}SD_Token;
 
 
 SD_ERROR SD_SPI_SetSPI(SD_HandleTypeDef *sd, SPI_HandleTypeDef *spi);
@@ -63,6 +73,8 @@ SD_R1_Response SD_SPI_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint
 SD_R1_Response SD_CMD_ResetSdCard(SD_HandleTypeDef *sd);
 SD_R1_Response SD_CMD_SetAppCommand(SD_HandleTypeDef *sd);
 SD_R1_Response SD_CMD_AppInitSD(SD_HandleTypeDef *sd);
-SD_ERROR SD_Init(SD_HandleTypeDef *sd);
+SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs_port, uint16_t cs_pin);
+SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block);
+SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uint32_t size);
 
 #endif /* SD_CARD_DRIVER_FOR_STM32_INC_SD_CARD_DRIVER_H_ */

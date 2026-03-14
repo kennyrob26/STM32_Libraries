@@ -90,5 +90,5 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *read_buffer, uint32_t size);
 SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uint8_t read_buffer[][512], uint32_t size);
 SD_ERROR SD_CMD_WriteSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *write_block);
-
+SD_ERROR SD_CMD_WriteMultipleBlocks(SD_HandleTypeDef *sd, uint32_t init_block, uint8_t write_buffer[][512], uint32_t size);
 #endif /* SD_CARD_DRIVER_FOR_STM32_INC_SD_CARD_DRIVER_H_ */

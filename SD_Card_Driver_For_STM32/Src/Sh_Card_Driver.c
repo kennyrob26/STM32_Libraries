@@ -9,6 +9,8 @@
 #include "Sd_Card_Driver.h"
 #include "string.h"
 
+static const uint8_t sd_dummy_bytes[SD_BLOCK_SIZE] = {[0 ... SD_BLOCK_SIZE-1] = 0xFF};
+
 SD_ERROR SD_SPI_SetSPI(SD_HandleTypeDef *sd, SPI_HandleTypeDef *spi)
 {
 	if(sd == NULL)
@@ -34,20 +36,45 @@ SD_ERROR SD_SPI_SetCsPin(SD_HandleTypeDef *sd, GPIO_TypeDef *cs_port, uint16_t c
 	return SD_ERROR_OK;
 }
 
-SD_ERROR SD_SPI_EnterSpiMode(SD_HandleTypeDef *sd)
+SD_ERROR SD_SPI_setCsHigh(SD_HandleTypeDef *sd)
 {
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 	if(sd->cs_pin.port == NULL)
 		return SD_ERROR_NO_SPI_CS_DEFINED;
 
+	SD_SPI_WhileBusyWait(sd, 1000);
+
+	uint8_t dummy_byte = 0xFF;
+	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 1);
+	HAL_SPI_Transmit(sd->hspi, &dummy_byte, 1, 100);
+
+	return SD_ERROR_OK;
+}
+
+SD_ERROR SD_SPI_SetCsLow(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+	if(sd->cs_pin.port == NULL)
+		return SD_ERROR_NO_SPI_CS_DEFINED;
+
+	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
+
+	return SD_ERROR_OK;
+}
+
+SD_ERROR SD_SPI_EnterSpiMode(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+
+	if(sd->cs_pin.port == NULL)
+		return SD_ERROR_NO_SPI_CS_DEFINED;
+
 	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 1);
 	uint8_t initSd_spiMode[10] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};   //80 pulsos de clock com MOSI em HIGH;
 	HAL_SPI_Transmit(sd->hspi, initSd_spiMode, sizeof(initSd_spiMode), 10);
-
-
-	HAL_SPI_Transmit(sd->hspi, initSd_spiMode, sizeof(initSd_spiMode), 10);
-
 
 	return SD_ERROR_OK;
 
@@ -58,12 +85,14 @@ SD_R1_Response SD_SPI_WaitingResponse(SD_HandleTypeDef *sd, uint16_t response_ti
 	if(sd == NULL)
 		return SD_R1_ERROR;
 
+	if(SD_SPI_SetCsLow(sd) != SD_ERROR_OK)
+		return SD_ERROR_NO_SPI_CS_DEFINED;
+
 	int16_t rx = 0xFF;
 	uint8_t dummy_byte = 0xFF;
 
 	uint32_t initial_time  = HAL_GetTick();
 
-	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
 	while(rx == SD_R1_NO_RESPONSE)
 	{
 		if((HAL_GetTick() - initial_time) > response_timeout)
@@ -74,12 +103,27 @@ SD_R1_Response SD_SPI_WaitingResponse(SD_HandleTypeDef *sd, uint16_t response_ti
 
 		HAL_SPI_TransmitReceive(sd->hspi, &dummy_byte, (uint8_t*)&rx, 1, 100);
 	}
-	//HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 1);
-	//HAL_SPI_Transmit(sd->hspi, &dummy_byte, 1, 100);    //8 clocks  after the answer
-
 
 	return rx;
 
+}
+
+SD_ERROR SD_SPI_WhileBusyWait(SD_HandleTypeDef *sd, uint16_t timeout)
+{
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+
+	uint8_t response = 0;
+	uint32_t initial_time = HAL_GetTick();
+	while(response == 0)
+	{
+		if((HAL_GetTick() - initial_time) > timeout)
+			return SD_ERROR_TIMEOUT;
+		uint8_t dummy = 0xFF;
+		HAL_SPI_TransmitReceive(sd->hspi, &dummy, &response, 1, 1000);
+	}
+
+	return SD_ERROR_OK;
 }
 
 SD_R1_Response SD_SPI_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint32_t argument, uint16_t timeout_response)
@@ -89,13 +133,11 @@ SD_R1_Response SD_SPI_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint
 
 	uint8_t cmd[6] = {0x00};
 
-	if(command_id > 63)
-		return -1;
 	uint8_t crc = 0x01;
 	if(command_id == 0)
-		crc = 0x95;
+		crc = CMD_0_CRC;
 	else if(command_id == 8)
-		crc = 0x87;
+		crc = CMD_8_CRC;
 
 	cmd[0] = (command_id | 0x40);
 	cmd[1] = argument >> 24;           //0x11000000
@@ -104,15 +146,12 @@ SD_R1_Response SD_SPI_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint
 	cmd[4] = argument & 0xFF;
 	cmd[5] = crc;
 
-
-	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
+	SD_SPI_SetCsLow(sd);
 	HAL_SPI_Transmit(sd->hspi, cmd, sizeof(cmd), 10);
 
 	int16_t response = SD_SPI_WaitingResponse(sd, timeout_response);
 
-	uint8_t dummy_byte = 0xFF;
-	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 1);
-	HAL_SPI_Transmit(sd->hspi, &dummy_byte, 1, 100);
+	SD_SPI_setCsHigh(sd);
 	return response;
 }
 
@@ -237,35 +276,24 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 	return SD_ERROR_OK;
 
 }
-/*
-SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block_adress)
+
+static inline SD_ERROR SD_ReadBlock(SD_HandleTypeDef *sd, uint8_t *block, SD_Token response_token)
 {
-	SD_Token token = 0;
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
-	const uint8_t cmd17_readBlock = 17;
-
-	uint8_t tx_dummyBytes[512];
-	uint8_t rx_bytes[512] = {0};
-
-	memset(tx_dummyBytes, 0xFF, sizeof(tx_dummyBytes));
-
-	SD_SPI_TransmitCMD(sd, cmd17_readBlock, block_adress, 100);
-	token = SD_SPI_WaitingResponse(sd, 10);
-
-	if(token == SD_TOKEN_READ_START)
+	if(response_token == SD_TOKEN_READ_START)
 	{
-		HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
-		HAL_SPI_TransmitReceive(sd->hspi, tx_dummyBytes, rx_bytes, sizeof(tx_dummyBytes), 10);
-		//uint8_t crcBytes_discard[2] = {0xFF, 0xFF};
-		//HAL_SPI_Transmit(sd->hspi, crcBytes_discard, sizeof(crcBytes_discard), 10);
+		SD_SPI_SetCsLow(sd);
+		HAL_SPI_TransmitReceive(sd->hspi, sd_dummy_bytes, block, sizeof(sd_dummy_bytes), 100);
+		uint8_t crcBytes_discard[2] = {0xFF, 0xFF};
+		HAL_SPI_Transmit(sd->hspi, crcBytes_discard, sizeof(crcBytes_discard), 10);
 	}
 
 	return SD_ERROR_OK;
 }
-*/
-SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block)
+
+SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *read_buffer, uint32_t size)
 {
 
 	SD_Token token = 0;
@@ -274,28 +302,17 @@ SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block)
 
 	uint32_t block_adress = block * SD_BLOCK_SIZE;
 
-	uint8_t dummy_bytes[SD_BLOCK_SIZE];
-	uint8_t read_bytes[SD_BLOCK_SIZE] = {0};
-
-	memset(dummy_bytes, 0xFF, sizeof(dummy_bytes));
 	SD_SPI_TransmitCMD(sd, 17, block_adress, 100);
 
 	token = SD_SPI_WaitingResponse(sd, 10);
-	if(token == SD_TOKEN_READ_START)
-	{
-		HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
-		HAL_SPI_TransmitReceive(sd->hspi, dummy_bytes, read_bytes, sizeof(dummy_bytes), 100);
-		uint8_t crcBytes_discard[2] = {0xFF, 0xFF};
-		HAL_SPI_Transmit(sd->hspi, crcBytes_discard, sizeof(crcBytes_discard), 10);
-	}
 
-	uint8_t dummy_byte = 0xFF;
-	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 1);
-	HAL_SPI_Transmit(sd->hspi, &dummy_byte, 1, 100);
+	SD_ReadBlock(sd, read_buffer, token);
+	SD_SPI_setCsHigh(sd);
+
 	return SD_ERROR_OK;
 }
 
-SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uint32_t size)
+SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uint8_t read_buffer[][512], uint32_t size)
 {
 	SD_Token token = 0;
 	if(sd == NULL)
@@ -303,34 +320,66 @@ SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uin
 
 	uint32_t init_block_adress = init_block * SD_BLOCK_SIZE;
 
-	uint8_t dummy_bytes[SD_BLOCK_SIZE];
-	uint8_t read_bytes[SD_BLOCK_SIZE] = {0};
-
-	memset(dummy_bytes, 0xFF, sizeof(dummy_bytes));
 	SD_SPI_TransmitCMD(sd, 18, init_block_adress, 10);
 
-	uint32_t count = 0;
-	while(count < size)
+	for(uint32_t i=0; i<size; i++)
 	{
 		token = SD_SPI_WaitingResponse(sd, 10);
-		if(token == SD_TOKEN_READ_START)
-		{
-
-			HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 0);
-			HAL_SPI_TransmitReceive(sd->hspi, dummy_bytes, read_bytes, sizeof(dummy_bytes), 100);
-			uint8_t crcBytes_discard[2] = {0xFF, 0xFF};
-			HAL_SPI_Transmit(sd->hspi, crcBytes_discard, sizeof(crcBytes_discard), 10);
-
-			count++;
-		}
+		SD_ReadBlock(sd, read_buffer[i], token);
 	}
 
 	SD_SPI_TransmitCMD(sd, 12, 0x00, 10);
+	SD_SPI_setCsHigh(sd);
 
-	uint8_t dummy_byte = 0xFF;
-	HAL_GPIO_WritePin(sd->cs_pin.port, sd->cs_pin.pin, 1);
-	HAL_SPI_Transmit(sd->hspi, &dummy_byte, 1, 100);
 	return SD_ERROR_OK;
+}
+
+SD_ERROR SD_CMD_WriteSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *buffer_write)
+{
+	SD_Token token = 0;
+	SD_ERROR error_status = SD_INIT_OK;
+
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+
+	uint32_t block_adress = block * SD_BLOCK_SIZE;
+
+	SD_SPI_TransmitCMD(sd, 24, block_adress, 10);
+
+
+
+	SD_SPI_SetCsLow(sd);
+
+	uint8_t start_block_fe = 0xFE;
+	HAL_SPI_Transmit(sd->hspi, &start_block_fe, 1, 10);
+	HAL_SPI_Transmit(sd->hspi, buffer_write, SD_BLOCK_SIZE, 10);
+
+	uint8_t crc[2] = {0xFF, 0xFF};
+	HAL_SPI_Transmit(sd->hspi, crc, 2, 10);
+
+	token = SD_SPI_WaitingResponse(sd, 10);
+	if(token != SD_RESPONSE_ACCEPTED)
+	{
+		error_status = SD_ERROR_;
+
+	}
+
+	//SD_SPI_WhileBusyWait(sd, 1000);
+	/*
+	uint8_t response = 0;
+	while(response == 0)
+	{
+		uint8_t dummy = 0xFF;
+		HAL_SPI_TransmitReceive(sd->hspi, &dummy, &response, 1, 1000);
+	}
+	*/
+	//uint8_t dummy[5] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	//HAL_SPI_Transmit(sd->hspi, dummy, 5, 100);
+	//HAL_SPI_Transmit(sd->hspi, sd_dummy_bytes, SD_BLOCK_SIZE, 100);
+	SD_SPI_setCsHigh(sd);
+
+	return error_status;
+
 }
 
 

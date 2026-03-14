@@ -12,7 +12,7 @@
 #include "stm32g0xx_hal.h"
 
 #define SD_BLOCK_SIZE 512
-
+#define SD_DUMMY_BYTE 0xFF
 #define CMD_0_CRC 0x95
 #define CMD_8_CRC 0x87
 
@@ -73,6 +73,20 @@ typedef enum
 	SD_RESPONSE_CRC_ERROR   = 0xEB, //101
 	SD_RESPONSE_WRITE_ERROR = 0xED  //110
 }SD_Token;
+
+typedef enum
+{
+	SD_CMD_0  = 0,
+	SD_CMD_1  = 1,
+	SD_CMD_8  = 8,
+	SD_CMD_12 = 12,
+	SD_CMD_17 = 17,
+	SD_CMD_18 = 18,
+	SD_CMD_24 = 24,
+	SD_CMD_25 = 25,
+	SD_CMD_55 = 55
+
+}SD_CMD;
 
 
 SD_ERROR SD_SPI_SetSPI(SD_HandleTypeDef *sd, SPI_HandleTypeDef *spi);

@@ -24,12 +24,7 @@ typedef struct
 	uint16_t pin;
 }SD_GPIO_t;
 
-typedef struct
-{
-	SPI_HandleTypeDef *hspi;
-	SD_GPIO_t cs_pin;
 
-}SD_HandleTypeDef;
 
 
 typedef enum
@@ -79,6 +74,7 @@ typedef enum
 	SD_CMD_0  = 0,
 	SD_CMD_1  = 1,
 	SD_CMD_8  = 8,
+	SD_CMD_9  = 9,
 	SD_CMD_12 = 12,
 	SD_CMD_17 = 17,
 	SD_CMD_18 = 18,
@@ -87,6 +83,31 @@ typedef enum
 	SD_CMD_55 = 55
 
 }SD_CMD;
+
+typedef enum
+{
+	SD_CSD_VERSION_1 = 0,
+	SD_CSD_VERSION_2 = 1,
+	SD_CSD_VERSION_3 = 2
+}SD_CSD_Version;
+
+
+typedef struct
+{
+	SD_CSD_Version version;
+	uint16_t block_length;
+	uint16_t size_mult;
+	uint64_t size;
+}SD_CSD_Register;
+
+typedef struct
+{
+	SPI_HandleTypeDef *hspi;
+	SD_GPIO_t cs_pin;
+
+	SD_CSD_Register csd;
+
+}SD_HandleTypeDef;
 
 
 SD_ERROR SD_SPI_SetSPI(SD_HandleTypeDef *sd, SPI_HandleTypeDef *spi);
@@ -105,4 +126,5 @@ SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *r
 SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uint8_t read_buffer[][512], uint32_t size);
 SD_ERROR SD_CMD_WriteSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *write_block);
 SD_ERROR SD_CMD_WriteMultipleBlocks(SD_HandleTypeDef *sd, uint32_t init_block, uint8_t write_buffer[][512], uint32_t size);
+SD_ERROR SD_CMD_CsdRead(SD_HandleTypeDef *sd);
 #endif /* SD_CARD_DRIVER_FOR_STM32_INC_SD_CARD_DRIVER_H_ */

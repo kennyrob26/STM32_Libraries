@@ -8,6 +8,7 @@
 
 #include "Sd_Card_Driver.h"
 #include "string.h"
+#include "math.h"
 
 static const uint8_t sd_dummy_bytes[SD_BLOCK_SIZE] = {[0 ... SD_BLOCK_SIZE-1] = 0xFF};
 
@@ -80,6 +81,7 @@ SD_ERROR SD_SPI_EnterSpiMode(SD_HandleTypeDef *sd)
 
 }
 
+
 SD_R1_Response SD_SPI_WaitingResponse(SD_HandleTypeDef *sd, uint16_t response_timeout)
 {
 	if(sd == NULL)
@@ -107,6 +109,21 @@ SD_R1_Response SD_SPI_WaitingResponse(SD_HandleTypeDef *sd, uint16_t response_ti
 	return rx;
 
 }
+
+SD_ERROR SD_SPI_WaitingExpectedResponse(SD_HandleTypeDef *sd, uint8_t expected_response, uint16_t timeout)
+{
+	uint8_t response = 0;
+	uint32_t initial_time = HAL_GetTick();
+	while(response != expected_response)
+	{
+		if((HAL_GetTick() - initial_time) > timeout)
+			return SD_ERROR_TIMEOUT;
+		uint8_t dummy = 0xFF;
+		HAL_SPI_TransmitReceive(sd->hspi, &dummy, &response, 1, 10);
+	}
+	return SD_ERROR_OK;
+}
+
 
 SD_ERROR SD_SPI_WhileBusyWait(SD_HandleTypeDef *sd, uint16_t timeout)
 {
@@ -277,18 +294,19 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 
 }
 
-static inline SD_ERROR SD_ReadBlock(SD_HandleTypeDef *sd, uint8_t *block, SD_Token response_token)
+static inline SD_ERROR SD_ReadBlock(SD_HandleTypeDef *sd, uint8_t *block, uint16_t block_size)
 {
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
-	if(response_token == SD_TOKEN_READ_START)
-	{
-		SD_SPI_SetCsLow(sd);
-		HAL_SPI_TransmitReceive(sd->hspi, sd_dummy_bytes, block, sizeof(sd_dummy_bytes), 100);
-		uint8_t crcBytes_discard[2] = {0xFF, 0xFF};
-		HAL_SPI_Transmit(sd->hspi, crcBytes_discard, sizeof(crcBytes_discard), 10);
-	}
+	SD_SPI_SetCsLow(sd);
+
+	if(SD_SPI_WaitingExpectedResponse(sd, SD_TOKEN_READ_START, 10) != SD_ERROR_OK)
+		return SD_ERROR_;
+
+	HAL_SPI_TransmitReceive(sd->hspi, sd_dummy_bytes, block, block_size, 100);
+	uint8_t crcBytes_discard[2] = {0xFF, 0xFF};
+	HAL_SPI_Transmit(sd->hspi, crcBytes_discard, sizeof(crcBytes_discard), 10);
 
 	return SD_ERROR_OK;
 }
@@ -296,7 +314,6 @@ static inline SD_ERROR SD_ReadBlock(SD_HandleTypeDef *sd, uint8_t *block, SD_Tok
 SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *read_buffer, uint32_t size)
 {
 
-	SD_Token token = 0;
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
@@ -304,9 +321,7 @@ SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *r
 
 	SD_SPI_TransmitCMD(sd, 17, block_adress, 100);
 
-	token = SD_SPI_WaitingResponse(sd, 10);
-
-	SD_ReadBlock(sd, read_buffer, token);
+	SD_ReadBlock(sd, read_buffer, SD_BLOCK_SIZE);
 	SD_SPI_setCsHigh(sd);
 
 	return SD_ERROR_OK;
@@ -314,7 +329,6 @@ SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *r
 
 SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uint8_t read_buffer[][512], uint32_t size)
 {
-	SD_Token token = 0;
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
@@ -323,12 +337,9 @@ SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uin
 	SD_SPI_TransmitCMD(sd, 18, init_block_adress, 10);
 
 	for(uint32_t i=0; i<size; i++)
-	{
-		token = SD_SPI_WaitingResponse(sd, 10);
-		SD_ReadBlock(sd, read_buffer[i], token);
-	}
+		SD_ReadBlock(sd, read_buffer[i], SD_BLOCK_SIZE);
 
-	SD_SPI_TransmitCMD(sd, 12, 0x00, 10);
+	SD_SPI_TransmitCMD(sd, SD_CMD_12, 0x00, 10);
 	SD_SPI_setCsHigh(sd);
 
 	return SD_ERROR_OK;
@@ -401,6 +412,47 @@ SD_ERROR SD_CMD_WriteMultipleBlocks(SD_HandleTypeDef *sd, uint32_t init_block, u
 	return SD_ERROR_OK;
 }
 
+//PAGE 226 archive  Part1_Physical_Layer_Simplified_Specification_Ver9.00.pdf
+SD_ERROR SD_CMD_CsdRead(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+
+	SD_SPI_TransmitCMD(sd, SD_CMD_9, 0, 100);
+
+	if(SD_SPI_WaitingExpectedResponse(sd, SD_R1_OK, 10) != SD_ERROR_OK)
+		return SD_ERROR_;
+
+	uint8_t csd_response[16];
+	SD_ReadBlock(sd, csd_response, sizeof(csd_response));
+
+	sd->csd.version = (csd_response[0] >> 6);
+
+	if(sd->csd.version == SD_CSD_VERSION_1)
+	{
+		uint8_t read_bl_len = (csd_response[5] & 0x0F);
+		sd->csd.block_length = 0x0001 << read_bl_len;  // 2^(bl_len)
+
+
+		uint8_t c_size_mult = (csd_response[9] & 0x03) << 1;
+		c_size_mult |= (csd_response[10] >> 7);
+
+		sd->csd.size_mult = 1UL << (c_size_mult + 2); //2^(mult+2)
+
+
+		uint16_t c_size = (uint16_t)(csd_response[6] & 0x03) << 10;  //0000xx0000000000
+		c_size |= ((uint16_t)csd_response[7] << 2);
+		c_size |= (csd_response[8] >> 6) & 0x03;
+
+		uint32_t blocknr = (c_size + 1) * sd->csd.size_mult;
+		sd->csd.size = blocknr * sd->csd.block_length;
+
+	}
+
+	SD_SPI_setCsHigh(sd);
+
+	return SD_ERROR_OK;
+}
 
 
 

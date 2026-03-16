@@ -179,7 +179,7 @@ SD_R1_Response SD_CMD_ResetSdCard(SD_HandleTypeDef *sd)
 
 	const uint8_t  cmd_resetSD   = 0x00;
 	const uint8_t argument      = 0x00;
-	const uint8_t  timeout       = 10;
+	const uint16_t  timeout     = 100;
 
 	return SD_SPI_TransmitCMD(sd, cmd_resetSD, (uint32_t)argument, (uint16_t)timeout);
 }
@@ -202,11 +202,27 @@ SD_R1_Response SD_CMD_AppInitSD(SD_HandleTypeDef *sd)
 	if(sd == NULL)
 		return SD_R1_ERROR;
 
-	const uint8_t  cmd_initSd =   41;
-	const uint8_t  argument   = 0x00;
+
+	const uint32_t  argument   = 0x40000000;
 	const uint8_t  timeout    =   10;
 
-	return SD_SPI_TransmitCMD(sd, cmd_initSd, (uint32_t)argument, (uint16_t)timeout);
+	return SD_SPI_TransmitCMD(sd, SD_ACMD_41, (uint32_t)argument, (uint16_t)timeout);
+}
+
+SD_R1_Response SD_CMD_CMD8(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL || sd->cs_pin.port == NULL)
+		return SD_R1_ERROR;
+
+	const uint32_t cmd_argument   = 0x000001AA;
+	const uint8_t  cmd_timeout    =   10;
+
+	SD_R1_Response r1_resp = SD_SPI_TransmitCMD(sd, SD_CMD_8, cmd_argument, cmd_timeout);
+	SD_SPI_SetCsLow(sd);
+	HAL_SPI_Transmit(sd->hspi, (uint8_t []){0xFF}, 1, 100);
+	SD_SPI_setCsHigh(sd);
+
+	return r1_resp;
 }
 
 SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs_port, uint16_t cs_pin)
@@ -223,7 +239,7 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 
 	while(stateSd != SD_INIT_OK)
 	{
-		if((HAL_GetTick() - initial_time) > 1000)
+		if((HAL_GetTick() - initial_time) > 3000)
 			stateSd = SD_INIT_ERROR_TIMEOUT;
 
 		switch (stateSd)
@@ -239,6 +255,20 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 				switch(r1_response)
 				{
 					case SD_R1_IDLE:
+						stateSd = SD_INIT_SEND_CMD8;
+					break;
+					case SD_R1_NO_RESPONSE:
+						stateSd = SD_INIT_ENTER_SPI_MODE;
+					break;
+					default:
+						stateSd = SD_INIT_ERROR;
+				}
+			break;
+			case SD_INIT_SEND_CMD8:
+				r1_response = SD_CMD_CMD8(sd);
+				switch (r1_response)
+				{
+					case SD_R1_IDLE:
 						stateSd = SD_INIT_SET_APP_CMD;
 					break;
 					case SD_R1_NO_RESPONSE:
@@ -246,6 +276,7 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 					break;
 					default:
 						stateSd = SD_INIT_ERROR;
+						break;
 				}
 			break;
 			case SD_INIT_SET_APP_CMD:
@@ -317,9 +348,13 @@ SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *r
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
-	uint32_t block_adress = block * SD_BLOCK_SIZE;
+	uint32_t block_adress;
+	if(sd->csd.version == SD_CSD_VERSION_1)
+		block_adress = block * sd->csd.block_length;
+	else
+		block_adress = block;
 
-	SD_SPI_TransmitCMD(sd, 17, block_adress, 100);
+	SD_SPI_TransmitCMD(sd, SD_CMD_17, block_adress, 100);
 
 	SD_ReadBlock(sd, read_buffer, SD_BLOCK_SIZE);
 	SD_SPI_setCsHigh(sd);
@@ -332,9 +367,13 @@ SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uin
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
-	uint32_t init_block_adress = init_block * SD_BLOCK_SIZE;
+	uint32_t init_block_adress;
+	if(sd->csd.version == SD_CSD_VERSION_1)
+		init_block_adress = init_block * sd->csd.block_length;
+	else
+		init_block_adress = init_block;
 
-	SD_SPI_TransmitCMD(sd, 18, init_block_adress, 10);
+	SD_SPI_TransmitCMD(sd, SD_CMD_18, init_block_adress, 10);
 
 	for(uint32_t i=0; i<size; i++)
 		SD_ReadBlock(sd, read_buffer[i], SD_BLOCK_SIZE);
@@ -353,10 +392,13 @@ SD_ERROR SD_CMD_WriteSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
-	uint32_t block_adress = block * SD_BLOCK_SIZE;
+	uint32_t block_adress;
+	if(sd->csd.version == SD_CSD_VERSION_1)
+		block_adress = block * sd->csd.block_length;
+	else
+		block_adress = block;
 
-	SD_SPI_TransmitCMD(sd, 24, block_adress, 10);
-
+	SD_SPI_TransmitCMD(sd, SD_CMD_24, block_adress, 10);
 
 	SD_SPI_SetCsLow(sd);
 
@@ -387,7 +429,11 @@ SD_ERROR SD_CMD_WriteMultipleBlocks(SD_HandleTypeDef *sd, uint32_t init_block, u
 
 	SD_Token token = 0;
 
-	uint32_t init_block_adress = init_block * SD_BLOCK_SIZE;
+	uint32_t init_block_adress;
+	if(sd->csd.version == SD_CSD_VERSION_1)
+		init_block_adress = init_block * sd->csd.block_length;
+	else
+		init_block_adress = init_block;
 
 	SD_SPI_TransmitCMD(sd, SD_CMD_25, init_block_adress, 10);
 	SD_SPI_SetCsLow(sd);
@@ -396,7 +442,7 @@ SD_ERROR SD_CMD_WriteMultipleBlocks(SD_HandleTypeDef *sd, uint32_t init_block, u
 	for(uint8_t i=0; i<size; i++)
 	{
 		HAL_SPI_Transmit(sd->hspi, (uint8_t[]){SD_TOKEN_WRITE_START}, 1, 10);
-		HAL_SPI_Transmit(sd->hspi, write_buffer[0], SD_BLOCK_SIZE, 10);
+		HAL_SPI_Transmit(sd->hspi, write_buffer[i], SD_BLOCK_SIZE, 10);
 		HAL_SPI_Transmit(sd->hspi, (uint8_t[]){0xFF,0xFF}, 2, 10);
 
 		token = 0;
@@ -412,7 +458,7 @@ SD_ERROR SD_CMD_WriteMultipleBlocks(SD_HandleTypeDef *sd, uint32_t init_block, u
 	return SD_ERROR_OK;
 }
 
-//PAGE 226 archive  Part1_Physical_Layer_Simplified_Specification_Ver9.00.pdf
+//PAGE 226,  archive:  Part1_Physical_Layer_Simplified_Specification_Ver9.00.pdf
 SD_ERROR SD_CMD_CsdRead(SD_HandleTypeDef *sd)
 {
 	if(sd == NULL)
@@ -424,14 +470,30 @@ SD_ERROR SD_CMD_CsdRead(SD_HandleTypeDef *sd)
 		return SD_ERROR_;
 
 	uint8_t csd_response[16];
-	SD_ReadBlock(sd, csd_response, sizeof(csd_response));
+	//SD_ReadBlock(sd, csd_response, sizeof(csd_response));
+
+	SD_SPI_SetCsLow(sd);
+
+	int16_t response = SD_SPI_WaitingResponse(sd, 10);
+	if(response < 0)
+		return SD_ERROR_;
+	else if(response == 0xFE)
+		HAL_SPI_TransmitReceive(sd->hspi, sd_dummy_bytes, csd_response, sizeof(csd_response), 100);
+	else
+	{
+		csd_response[0] = response;
+		HAL_SPI_TransmitReceive(sd->hspi, sd_dummy_bytes, (csd_response + 1), sizeof(csd_response) -1, 100);
+	}
+
+	uint8_t crcBytes_discard[2] = {0xFF, 0xFF};
+	HAL_SPI_Transmit(sd->hspi, crcBytes_discard, sizeof(crcBytes_discard), 10);
 
 	sd->csd.version = (csd_response[0] >> 6);
 
 	if(sd->csd.version == SD_CSD_VERSION_1)
 	{
 		uint8_t read_bl_len = (csd_response[5] & 0x0F);
-		sd->csd.block_length = 0x0001 << read_bl_len;  // 2^(bl_len)
+		sd->csd.block_length = 1UL << read_bl_len;  // 2^(bl_len)
 
 
 		uint8_t c_size_mult = (csd_response[9] & 0x03) << 1;
@@ -447,12 +509,32 @@ SD_ERROR SD_CMD_CsdRead(SD_HandleTypeDef *sd)
 		uint32_t blocknr = (c_size + 1) * sd->csd.size_mult;
 		sd->csd.size = blocknr * sd->csd.block_length;
 
+		sd->csd.block_count = sd->csd.size / 512;
+
+	}
+	else if(sd->csd.version == SD_CSD_VERSION_2)
+	{
+		sd->csd.block_length = 512;   //In version 2 block is fixed in 512
+
+		uint32_t c_size =  (uint32_t)(csd_response[7] & 0x3F) << 16; //
+		c_size |= ((uint32_t)csd_response[8] << 8);
+		c_size |= (uint32_t)csd_response[9];
+
+		sd->csd.block_count = (uint64_t)(c_size + 1) << 10; // 2¹⁰
+		sd->csd.size = (uint64_t)(c_size + 1) << 19; // 512 is in KB, equals a 1024 blocks of 512 bytes
 	}
 
 	SD_SPI_setCsHigh(sd);
 
 	return SD_ERROR_OK;
 }
+
+
+
+
+
+
+
 
 
 

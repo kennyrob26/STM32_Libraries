@@ -53,10 +53,11 @@ typedef enum
 	SD_INIT_OK                = 0,
 	SD_INIT_ENTER_SPI_MODE    = 1,
 	SD_INIT_RESET_SD_CARD     = 2,
-	SD_INIT_SET_APP_CMD       = 3,
-	SD_INIT_SEND_APP_INIT_CMD = 4,
-	SD_INIT_ERROR_TIMEOUT     = 5,
-	SD_INIT_ERROR             = 6
+	SD_INIT_SEND_CMD8         = 3,
+	SD_INIT_SET_APP_CMD       = 4,
+	SD_INIT_SEND_APP_INIT_CMD = 5,
+	SD_INIT_ERROR_TIMEOUT     = 6,
+	SD_INIT_ERROR             = 7
 }SD_Init_Status;
 
 typedef enum
@@ -80,7 +81,8 @@ typedef enum
 	SD_CMD_18 = 18,
 	SD_CMD_24 = 24,
 	SD_CMD_25 = 25,
-	SD_CMD_55 = 55
+	SD_CMD_55 = 55,
+	SD_ACMD_41 = 41
 
 }SD_CMD;
 
@@ -98,6 +100,7 @@ typedef struct
 	uint16_t block_length;
 	uint16_t size_mult;
 	uint64_t size;
+	uint64_t block_count;
 }SD_CSD_Register;
 
 typedef struct
@@ -121,6 +124,7 @@ SD_R1_Response SD_SPI_TransmitCMD(SD_HandleTypeDef *sd, uint8_t command_id, uint
 SD_R1_Response SD_CMD_ResetSdCard(SD_HandleTypeDef *sd);
 SD_R1_Response SD_CMD_SetAppCommand(SD_HandleTypeDef *sd);
 SD_R1_Response SD_CMD_AppInitSD(SD_HandleTypeDef *sd);
+SD_R1_Response SD_CMD_CMD8(SD_HandleTypeDef *sd);
 SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs_port, uint16_t cs_pin);
 SD_ERROR SD_CMD_ReadSingleBlock(SD_HandleTypeDef *sd, uint32_t block, uint8_t *read_buffer, uint32_t size);
 SD_ERROR SD_CMD_ReadMultipleBlock(SD_HandleTypeDef *sd, uint32_t init_block, uint8_t read_buffer[][512], uint32_t size);

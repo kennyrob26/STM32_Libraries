@@ -51,13 +51,16 @@ typedef enum
 typedef enum
 {
 	SD_INIT_OK                = 0,
-	SD_INIT_ENTER_SPI_MODE    = 1,
-	SD_INIT_RESET_SD_CARD     = 2,
-	SD_INIT_SEND_CMD8         = 3,
-	SD_INIT_SET_APP_CMD       = 4,
-	SD_INIT_SEND_APP_INIT_CMD = 5,
-	SD_INIT_ERROR_TIMEOUT     = 6,
-	SD_INIT_ERROR             = 7
+	SD_INIT_DEFINE_LOW_CLOCK  = 1,
+	SD_INIT_ENTER_SPI_MODE    = 2,
+	SD_INIT_RESET_SD_CARD     = 3,
+	SD_INIT_SEND_CMD8         = 4,
+	SD_INIT_SET_APP_CMD       = 5,
+	SD_INIT_SEND_APP_INIT_CMD = 6,
+	SD_INIT_READ_CSD_REGISTER = 7,
+	SD_INIT_DEFINE_HIGH_CLOCK = 8,
+	SD_INIT_ERROR_TIMEOUT     = 9,
+	SD_INIT_ERROR             = 10
 }SD_Init_Status;
 
 typedef enum
@@ -109,6 +112,8 @@ typedef struct
 	SD_GPIO_t cs_pin;
 
 	SD_CSD_Register csd;
+	uint32_t spi_user_prescaler;
+
 
 }SD_HandleTypeDef;
 

@@ -225,6 +225,36 @@ SD_R1_Response SD_CMD_CMD8(SD_HandleTypeDef *sd)
 	return r1_resp;
 }
 
+SD_ERROR SD_SPI_DefineLowClock(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+
+	sd->spi_user_prescaler = sd->hspi->Init.BaudRatePrescaler;
+
+	HAL_SPI_DeInit(sd->hspi);
+	sd->hspi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;	//Minimum SPI clock possible for initialization SD in SPI mode.
+	HAL_SPI_Init(sd->hspi);
+
+	HAL_SPI_Transmit(sd->hspi, (uint8_t[]){0xFF, 0xFF, 0xFF}, 3, 100);	//dummy clocks
+	return SD_ERROR_OK;
+}
+
+SD_ERROR SD_SPI_DefineHighClock(SD_HandleTypeDef *sd)
+{
+	if(sd == NULL)
+		return SD_ERROR_NO_HANDLER_DEFINED;
+
+	if(sd->spi_user_prescaler == 0)
+		return SD_ERROR_;
+
+	HAL_SPI_DeInit(sd->hspi);
+	sd->hspi->Init.BaudRatePrescaler = sd->spi_user_prescaler;
+	HAL_SPI_Init(sd->hspi);
+
+	HAL_SPI_Transmit(sd->hspi, (uint8_t[]){0xFF, 0xFF, 0xFF}, 3, 100);	//dummy clocks
+	return SD_ERROR_OK;
+}
 SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs_port, uint16_t cs_pin)
 {
 	  SD_SPI_SetSPI(sd, hspi);
@@ -233,7 +263,8 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 	if(sd == NULL)
 		return SD_ERROR_NO_HANDLER_DEFINED;
 
-	SD_Init_Status stateSd = SD_INIT_ENTER_SPI_MODE;
+	//SD_Init_Status stateSd = SD_INIT_ENTER_SPI_MODE;
+	SD_Init_Status stateSd = SD_INIT_DEFINE_LOW_CLOCK;
 	SD_R1_Response r1_response;
 	uint32_t initial_time = HAL_GetTick();
 
@@ -244,6 +275,12 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 
 		switch (stateSd)
 		{
+			case SD_INIT_DEFINE_LOW_CLOCK:
+				if(SD_SPI_DefineLowClock(sd) == SD_ERROR_OK)
+					stateSd = SD_INIT_ENTER_SPI_MODE;
+				else
+					stateSd = SD_INIT_DEFINE_LOW_CLOCK;
+			break;
 			case SD_INIT_ENTER_SPI_MODE:
 				if(SD_SPI_EnterSpiMode(sd) == SD_ERROR_OK)
 					stateSd = SD_INIT_RESET_SD_CARD;
@@ -303,7 +340,8 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 						stateSd = SD_INIT_SET_APP_CMD;
 					break;
 					case SD_R1_OK:
-						stateSd = SD_INIT_OK;
+						//stateSd = SD_INIT_OK;
+						stateSd = SD_INIT_READ_CSD_REGISTER;
 					break;
 					case SD_R1_NO_RESPONSE:
 						stateSd = SD_INIT_ENTER_SPI_MODE;
@@ -311,6 +349,19 @@ SD_ERROR SD_Init(SD_HandleTypeDef *sd, SPI_HandleTypeDef *hspi, GPIO_TypeDef *cs
 					default:
 						stateSd = SD_INIT_ERROR;
 				}
+			break;
+			case SD_INIT_READ_CSD_REGISTER:
+				if(SD_CMD_CsdRead(sd) == SD_ERROR_OK)
+					//stateSd = SD_INIT_OK;
+					stateSd = SD_INIT_DEFINE_HIGH_CLOCK;
+				else
+					stateSd = SD_INIT_READ_CSD_REGISTER;
+			break;
+			case SD_INIT_DEFINE_HIGH_CLOCK:
+				if(SD_SPI_DefineHighClock(sd) == SD_ERROR_OK)
+					stateSd = SD_INIT_OK;
+				else
+					stateSd = SD_INIT_DEFINE_HIGH_CLOCK;
 			break;
 			case SD_INIT_ERROR_TIMEOUT:
 				return SD_ERROR_TIMEOUT;

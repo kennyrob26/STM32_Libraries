@@ -13,6 +13,7 @@
 
 TIM_HandleTypeDef *lcd_tim;
 
+
 static inline void LCD_Delay_us(uint16_t us)
 {
 	__HAL_TIM_SET_COUNTER(lcd_tim, 0); // Reset TIM counter
@@ -281,6 +282,9 @@ LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 	LCD_Send_CMD(lcd, cursor_adress);
 	LCD_Delay_us(50);
 
+	lcd->cursor_x = x;
+	lcd->cursor_y = y;
+
 	return LCD_OK;
 }
 
@@ -318,14 +322,48 @@ LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
 		LCD_Send_Nibble(lcd, low_nibble, LCD_LOW_NIBBLE, LCD_RS_DATA);
 	}
 
+	lcd->cursor_y++;
 	LCD_Delay_us(50);
 
 	return LCD_OK;
 }
 
+LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[])
+{
+	uint8_t i = 0;
+	while(string[i] != '\0')
+	{
+		LCD_Send_Data(lcd, string[i]);
+		i++;
+	}
+
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
+{
+	uint8_t previous_x = 0;
+	uint8_t previous_y = 0;
+
+	if(lcd->cursor_y > 0)
+	{
+		previous_x = lcd->cursor_x;
+		previous_y = lcd->cursor_y - 1;
+
+	}
+	else if(lcd->cursor_x > 0)
+	{
+		previous_x = (lcd->cursor_x - 1);
+		previous_y = (lcd->size.max_columns - 1);
+	}
 
 
+	LCD_CMD_SetCursor(lcd, previous_x, previous_y);
+	LCD_Send_Data(lcd, ' ');
+	LCD_CMD_SetCursor(lcd, previous_x, previous_y);
 
+	return LCD_OK;
+}
 
 
 

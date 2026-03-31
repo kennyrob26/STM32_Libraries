@@ -49,12 +49,15 @@ typedef enum{
 	LCD_FORMAT_20_04 = 3
 }LCD_DisplayFormat;
 
+
 typedef struct
 {
 	LCD_Pins pin;
 	LCD_INTERFACE interface;
 	LCD_DisplaySize size;
 	TIM_HandleTypeDef *tim;
+	uint8_t cursor_x;
+	uint8_t cursor_y;
 }LCD_TypeDef;
 
 typedef enum{
@@ -93,5 +96,7 @@ LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor
 LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y);
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim);
 LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data);
+LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[]);
+LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd);
 
 #endif /* INC_LCD1602_H_ */

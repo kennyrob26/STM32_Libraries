@@ -65,6 +65,7 @@ typedef enum{
 	LCD_ERROR_HADLE_NOT_DEFINED  = 1,
 	LCD_ERROR_INCORRECT_PARAM    = 2,
 	LCD_ERROR_TIMEOUT            = 3,
+	LCD_ERROR_					 = 4
 }LCD_ERROR;
 
 typedef enum{
@@ -98,5 +99,6 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data);
 LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[]);
 LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd);
+LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd);
 
 #endif /* INC_LCD1602_H_ */

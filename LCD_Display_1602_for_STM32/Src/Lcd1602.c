@@ -314,6 +314,19 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 
 LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
 {
+	if(lcd->cursor_y >= lcd->size.max_columns)
+	{
+		if(lcd->cursor_x < (lcd->size.max_lines - 1))
+			LCD_LineBreak(lcd);
+		else
+		{
+			lcd->cursor_y = lcd->size.max_columns;
+			return LCD_ERROR_;
+		}
+
+	}
+
+
 	if(lcd->interface == LCD_INTERFACE_4BIT)
 	{
 		uint8_t high_nibble = (data >> 4) & 0x0F;
@@ -323,6 +336,15 @@ LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
 	}
 
 	lcd->cursor_y++;
+
+	if(lcd->cursor_y >= lcd->size.max_columns)
+	{
+		if(lcd->cursor_x < (lcd->size.max_lines - 1))
+			LCD_LineBreak(lcd);
+		else
+			lcd->cursor_y = lcd->size.max_columns;   //cursor move to after last char
+	}
+
 	LCD_Delay_us(50);
 
 	return LCD_OK;
@@ -333,7 +355,8 @@ LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[])
 	uint8_t i = 0;
 	while(string[i] != '\0')
 	{
-		LCD_Send_Data(lcd, string[i]);
+		if(LCD_Send_Data(lcd, string[i]) == LCD_ERROR_)
+			break;
 		i++;
 	}
 
@@ -356,11 +379,23 @@ LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
 		previous_x = (lcd->cursor_x - 1);
 		previous_y = (lcd->size.max_columns - 1);
 	}
+	else
+		return LCD_ERROR_;
 
 
 	LCD_CMD_SetCursor(lcd, previous_x, previous_y);
 	LCD_Send_Data(lcd, ' ');
 	LCD_CMD_SetCursor(lcd, previous_x, previous_y);
+
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd)
+{
+	if(lcd->cursor_x < (lcd->size.max_lines - 1))
+		LCD_CMD_SetCursor(lcd, (lcd->cursor_x + 1), 0);
+	else
+		return LCD_ERROR_;
 
 	return LCD_OK;
 }

@@ -37,10 +37,23 @@ typedef enum{
 	LCD_INTERFACE_I2C  = 2
 }LCD_INTERFACE;
 
+typedef struct{
+	uint8_t max_lines;
+	uint8_t max_columns;
+}LCD_DisplaySize;
+
+typedef enum{
+	LCD_FORMAT_16_02 = 0,
+	LCD_FORMAT_20_02 = 1,
+	LCD_FORMAT_16_04 = 2,
+	LCD_FORMAT_20_04 = 3
+}LCD_DisplayFormat;
+
 typedef struct
 {
 	LCD_Pins pin;
 	LCD_INTERFACE interface;
+	LCD_DisplaySize size;
 	TIM_HandleTypeDef *tim;
 }LCD_TypeDef;
 
@@ -72,9 +85,12 @@ LCD_ERROR LCD_SetPin_DB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7_
 LCD_ERROR LCD_SetPin_RS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin);
 LCD_ERROR LCD_SetPin_Enable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin);
 LCD_ERROR LCD_SetPin_RW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin);
+LCD_ERROR LCD_SetDisplaySize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines);
+LCD_ERROR LCD_SetDisplayFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format);
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd);
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface);
 LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
+LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y);
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim);
 LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data);
 

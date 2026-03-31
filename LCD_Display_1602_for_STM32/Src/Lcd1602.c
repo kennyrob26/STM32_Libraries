@@ -8,6 +8,9 @@
 
 #include "Lcd1602.h"
 
+#define LINE1 0x00
+#define LINE2 0x40
+
 TIM_HandleTypeDef *lcd_tim;
 
 static inline void LCD_Delay_us(uint16_t us)
@@ -145,6 +148,39 @@ LCD_ERROR LCD_SetPin_RW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin
 	return LCD_OK;
 }
 
+LCD_ERROR LCD_SetDisplaySize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(columns > 20 || lines > 4)
+		return LCD_ERROR_INCORRECT_PARAM;
+
+	lcd->size.max_columns = columns;
+	lcd->size.max_lines   = lines;
+
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_SetDisplayFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	switch (format)
+	{
+		case LCD_FORMAT_16_02:
+			return LCD_SetDisplaySize(lcd, 16, 2);
+		case LCD_FORMAT_16_04:
+			return LCD_SetDisplaySize(lcd, 16, 4);
+		case LCD_FORMAT_20_02:
+			return LCD_SetDisplaySize(lcd, 20, 2);
+		case LCD_FORMAT_20_04:
+			return LCD_SetDisplaySize(lcd, 20, 4);
+		default:
+			return LCD_ERROR_INCORRECT_PARAM;
+	}
+}
+
 static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Type nibble_type, LCD_RS rs)
 {
 
@@ -196,6 +232,8 @@ LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface)
 		uint8_t command = 0x28;
 		LCD_Send_CMD(lcd, command);
 	}
+
+	LCD_Delay_us(100);
 	return LCD_OK;
 }
 
@@ -218,8 +256,32 @@ LCD_ERROR LCD_CMD_DisplayClear(LCD_TypeDef *lcd)
 
 	LCD_Send_CMD(lcd, cmd);
 
+	HAL_Delay(3);  //recommended 1.53ms
+
 	return LCD_OK;
 
+}
+
+LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	uint8_t cursor_adress;
+
+	if(x >= lcd->size.max_lines || y >= lcd->size.max_columns);
+
+	if(x == 0)
+		cursor_adress = LINE1 + y;
+	else if(x == 1)
+		cursor_adress = LINE2 + y;
+
+	cursor_adress |= 0x80; //1xxxxxxx
+
+	LCD_Send_CMD(lcd, cursor_adress);
+	LCD_Delay_us(50);
+
+	return LCD_OK;
 }
 
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim)
@@ -227,25 +289,20 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
+	if(lcd->size.max_columns == 0)
+		LCD_SetDisplayFormat(lcd, LCD_FORMAT_16_02);
+
 	lcd_tim = tim;
 
 	HAL_Delay(40);
-	//LCD_Send_Nibble(lcd, 0x03, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
-	//HAL_Delay(5);
-	//LCD_Send_Nibble(lcd, 0x03, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
-	//HAL_Delay(1);
+
 	LCD_Send_Nibble(lcd, 0x03, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
 	HAL_Delay(1);
-	//LCD_Send_Nibble(lcd, 0x02, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
-	//HAL_Delay(1);
 	LCD_CMD_FunctionSet(lcd, lcd_interface);
-	HAL_Delay(1);
 	LCD_CMD_FunctionSet(lcd, lcd_interface);
-	HAL_Delay(1);
 	LCD_CMD_OnOff(lcd, 1, 1, 0);
 	HAL_Delay(1);
 	LCD_CMD_DisplayClear(lcd);
-	HAL_Delay(5);
 	LCD_Send_CMD(lcd, 0x06);  //Display Entrey default;
 
 	return LCD_OK;
@@ -260,6 +317,8 @@ LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
 		LCD_Send_Nibble(lcd, high_nibble, LCD_HIGH_NIBBLE, LCD_RS_DATA);
 		LCD_Send_Nibble(lcd, low_nibble, LCD_LOW_NIBBLE, LCD_RS_DATA);
 	}
+
+	LCD_Delay_us(50);
 
 	return LCD_OK;
 }

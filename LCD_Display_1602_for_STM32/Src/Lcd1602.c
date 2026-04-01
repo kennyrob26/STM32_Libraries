@@ -55,7 +55,7 @@ static inline void LCD_Delay_us(uint16_t us)
 }
 
 
-LCD_ERROR LCD_SetPin_DB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_pin)
+LCD_ERROR LCD_GPIO_SetDB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -66,7 +66,7 @@ LCD_ERROR LCD_SetPin_DB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_
 	lcd->pin.db0.pin  = db0_pin;
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_DB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1_pin)
+LCD_ERROR LCD_GPIO_SetDB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -78,7 +78,7 @@ LCD_ERROR LCD_SetPin_DB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1_
 
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_DB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2_pin)
+LCD_ERROR LCD_GPIO_SetDB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -90,7 +90,7 @@ LCD_ERROR LCD_SetPin_DB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2_
 
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_DB3(LCD_TypeDef *lcd, GPIO_TypeDef *db3_port, uint16_t db3_pin)
+LCD_ERROR LCD_GPIO_SetDB3(LCD_TypeDef *lcd, GPIO_TypeDef *db3_port, uint16_t db3_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -101,7 +101,7 @@ LCD_ERROR LCD_SetPin_DB3(LCD_TypeDef *lcd, GPIO_TypeDef *db3_port, uint16_t db3_
 	lcd->pin.db3.pin  = db3_pin;
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_DB4(LCD_TypeDef *lcd, GPIO_TypeDef *db4_port, uint16_t db4_pin)
+LCD_ERROR LCD_GPIO_SetDB4(LCD_TypeDef *lcd, GPIO_TypeDef *db4_port, uint16_t db4_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -112,7 +112,7 @@ LCD_ERROR LCD_SetPin_DB4(LCD_TypeDef *lcd, GPIO_TypeDef *db4_port, uint16_t db4_
 	lcd->pin.db4.pin  = db4_pin;
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_DB5(LCD_TypeDef *lcd, GPIO_TypeDef *db5_port, uint16_t db5_pin)
+LCD_ERROR LCD_GPIO_SetDB5(LCD_TypeDef *lcd, GPIO_TypeDef *db5_port, uint16_t db5_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -124,7 +124,7 @@ LCD_ERROR LCD_SetPin_DB5(LCD_TypeDef *lcd, GPIO_TypeDef *db5_port, uint16_t db5_
 
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_DB6(LCD_TypeDef *lcd, GPIO_TypeDef *db6_port, uint16_t db6_pin)
+LCD_ERROR LCD_GPIO_SetDB6(LCD_TypeDef *lcd, GPIO_TypeDef *db6_port, uint16_t db6_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -135,7 +135,7 @@ LCD_ERROR LCD_SetPin_DB6(LCD_TypeDef *lcd, GPIO_TypeDef *db6_port, uint16_t db6_
 	lcd->pin.db6.pin  = db6_pin;
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_DB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7_pin)
+LCD_ERROR LCD_GPIO_SetDB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -146,7 +146,7 @@ LCD_ERROR LCD_SetPin_DB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7_
 	lcd->pin.db7.pin  = db7_pin;
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_RS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin)
+LCD_ERROR LCD_GPIO_SetRS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -158,7 +158,7 @@ LCD_ERROR LCD_SetPin_RS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin
 
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_Enable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin)
+LCD_ERROR LCD_GPIO_SetEnable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -169,7 +169,7 @@ LCD_ERROR LCD_SetPin_Enable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_
 	lcd->pin.E.pin  = enable_pin;
 	return LCD_OK;
 }
-LCD_ERROR LCD_SetPin_RW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin)
+LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -181,38 +181,7 @@ LCD_ERROR LCD_SetPin_RW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_SetDisplaySize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines)
-{
-	if(lcd == NULL)
-		return LCD_ERROR_HADLE_NOT_DEFINED;
-	if(columns > 20 || lines > 4)
-		return LCD_ERROR_INCORRECT_PARAM;
 
-	lcd->size.max_columns = columns;
-	lcd->size.max_lines   = lines;
-
-	return LCD_OK;
-}
-
-LCD_ERROR LCD_SetDisplayFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format)
-{
-	if(lcd == NULL)
-		return LCD_ERROR_HADLE_NOT_DEFINED;
-
-	switch (format)
-	{
-		case LCD_FORMAT_16_02:
-			return LCD_SetDisplaySize(lcd, 16, 2);
-		case LCD_FORMAT_16_04:
-			return LCD_SetDisplaySize(lcd, 16, 4);
-		case LCD_FORMAT_20_02:
-			return LCD_SetDisplaySize(lcd, 20, 2);
-		case LCD_FORMAT_20_04:
-			return LCD_SetDisplaySize(lcd, 20, 4);
-		default:
-			return LCD_ERROR_INCORRECT_PARAM;
-	}
-}
 
 static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Type nibble_type, LCD_RS rs)
 {
@@ -270,49 +239,7 @@ LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Enable_Display(LCD_TypeDef *lcd)
-{
-	lcd->display_status = LCD_DISPLAY_ON;
-	LCD_UpdateOnOff(lcd);
-	return LCD_OK;
-}
-
-LCD_ERROR LCD_Disable_Display(LCD_TypeDef *lcd)
-{
-	lcd->display_status = LCD_DISPLAY_OFF;
-	LCD_UpdateOnOff(lcd);
-	return LCD_OK;
-}
-
-LCD_ERROR LCD_Enable_Cursor(LCD_TypeDef *lcd)
-{
-	lcd->cursor_status = LCD_CURSOR_ENABLE;
-	LCD_UpdateOnOff(lcd);
-	return LCD_OK;
-}
-
-LCD_ERROR LCD_Disable_Cursor(LCD_TypeDef *lcd)
-{
-	lcd->cursor_status = LCD_CURSOR_DISABLE;
-	LCD_UpdateOnOff(lcd);
-	return LCD_OK;
-}
-
-LCD_ERROR LCD_Enable_BlinkCursor(LCD_TypeDef *lcd)
-{
-	lcd->cursor_blink_status = LCD_BLINK_CURSOR_ENABLE;
-	LCD_UpdateOnOff(lcd);
-	return LCD_OK;
-}
-LCD_ERROR LCD_Disable_BlinkCursor(LCD_TypeDef *lcd)
-{
-	lcd->cursor_blink_status = LCD_BLINK_CURSOR_DISABLE;
-	LCD_UpdateOnOff(lcd);
-	return LCD_OK;
-}
-
-
-LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd)
+static inline LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd)
 {
 	uint8_t command = 0x08;
 
@@ -321,6 +248,8 @@ LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd)
 	command |= (lcd->cursor_blink_status & 0x01);
 
 	LCD_Send_CMD(lcd, command);
+
+	return LCD_OK;
 }
 
 LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor)
@@ -334,19 +263,53 @@ LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_CMD_DisplayClear(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Display_SetSize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines)
 {
-	uint8_t cmd = 0x01;
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(columns > 20 || lines > 4)
+		return LCD_ERROR_INCORRECT_PARAM;
 
-	LCD_Send_CMD(lcd, cmd);
-
-	HAL_Delay(3);  //recommended 1.53ms
+	lcd->size.max_columns = columns;
+	lcd->size.max_lines   = lines;
 
 	return LCD_OK;
-
 }
 
-LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
+LCD_ERROR LCD_Display_SetFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	switch (format)
+	{
+		case LCD_FORMAT_16_02:
+			return LCD_Display_SetSize(lcd, 16, 2);
+		case LCD_FORMAT_16_04:
+			return LCD_Display_SetSize(lcd, 16, 4);
+		case LCD_FORMAT_20_02:
+			return LCD_Display_SetSize(lcd, 20, 2);
+		case LCD_FORMAT_20_04:
+			return LCD_Display_SetSize(lcd, 20, 4);
+		default:
+			return LCD_ERROR_INCORRECT_PARAM;
+	}
+}
+LCD_ERROR LCD_Display_Enable(LCD_TypeDef *lcd)
+{
+	lcd->display_status = LCD_DISPLAY_ON;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Display_Disable(LCD_TypeDef *lcd)
+{
+	lcd->display_status = LCD_DISPLAY_OFF;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Cursor_SetPos(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -372,33 +335,76 @@ LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_MoveCursor_toLeft(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Cursor_Enable(LCD_TypeDef *lcd)
+{
+	lcd->cursor_status = LCD_CURSOR_ENABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Cursor_Disable(LCD_TypeDef *lcd)
+{
+	lcd->cursor_status = LCD_CURSOR_DISABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Cursor_BlinkEnable(LCD_TypeDef *lcd)
+{
+	lcd->cursor_blink_status = LCD_BLINK_CURSOR_ENABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+LCD_ERROR LCD_Cursor_BlinkDisable(LCD_TypeDef *lcd)
+{
+	lcd->cursor_blink_status = LCD_BLINK_CURSOR_DISABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Cursor_MovetoLeft(LCD_TypeDef *lcd)
 {
 	cursor_y_decrement(lcd);
 
-	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
 }
 
-LCD_ERROR LCD_MoveCursor_toRight(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Cursor_MovetoRight(LCD_TypeDef *lcd)
 {
 	cursor_y_increment(lcd);
 
-	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
 }
 
-LCD_ERROR LCD_MoveCursor_toUp(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Cursor_MovetoUp(LCD_TypeDef *lcd)
 {
 	cursor_x_decrement(lcd);
 
-	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
 }
 
-LCD_ERROR LCD_MoveCursor_toDown(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Cursor_MovetoDown(LCD_TypeDef *lcd)
 {
 	cursor_x_increment(lcd);
 
-	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
 }
+
+
+
+
+LCD_ERROR LCD_CMD_DisplayClear(LCD_TypeDef *lcd)
+{
+	uint8_t cmd = 0x01;
+
+	LCD_Send_CMD(lcd, cmd);
+
+	HAL_Delay(3);  //recommended 1.53ms
+
+	return LCD_OK;
+
+}
+
 
 LCD_ERROR LCD_SetAutoLineBreak(LCD_TypeDef *lcd, LCD_AutoLineBreak auto_line_break)
 {
@@ -413,7 +419,7 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
 	if(lcd->size.max_columns == 0)
-		LCD_SetDisplayFormat(lcd, LCD_FORMAT_16_02);
+		LCD_Display_SetFormat(lcd, LCD_FORMAT_16_02);
 
 	LCD_SetAutoLineBreak(lcd, LCD_AUTO_LINE_BREAK_ENABLE);
 	lcd_tim = tim;
@@ -439,7 +445,7 @@ static inline LCD_ERROR LCD_CheckEndLine(LCD_TypeDef *lcd)
 		if(lcd->cursor_x < (lcd->size.max_lines - 1))
 		{
 			if(lcd->auto_line_break == LCD_AUTO_LINE_BREAK_ENABLE)
-				LCD_LineBreak(lcd);
+				LCD_Send_LineBreak(lcd);
 		}
 		else
 		{
@@ -452,7 +458,7 @@ static inline LCD_ERROR LCD_CheckEndLine(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
+LCD_ERROR LCD_Send_Char(LCD_TypeDef *lcd, uint8_t data)
 {
 	if(LCD_CheckEndLine(lcd) != LCD_OK)
 		return LCD_ERROR_;
@@ -479,7 +485,7 @@ LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[])
 	uint8_t i = 0;
 	while(string[i] != '\0')
 	{
-		if(LCD_Send_Data(lcd, string[i]) != LCD_OK)
+		if(LCD_Send_Char(lcd, string[i]) != LCD_OK)
 			break;
 		i++;
 	}
@@ -487,7 +493,7 @@ LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[])
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Send_Backspace(LCD_TypeDef *lcd)
 {
 	uint8_t previous_x = 0;
 	uint8_t previous_y = 0;
@@ -507,17 +513,17 @@ LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
 		return LCD_ERROR_;
 
 
-	LCD_CMD_SetCursor(lcd, previous_x, previous_y);
-	LCD_Send_Data(lcd, ' ');
-	LCD_CMD_SetCursor(lcd, previous_x, previous_y);
+	LCD_Cursor_SetPos(lcd, previous_x, previous_y);
+	LCD_Send_Char(lcd, ' ');
+	LCD_Cursor_SetPos(lcd, previous_x, previous_y);
 
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd)
 {
 	if(lcd->cursor_x < (lcd->size.max_lines - 1))
-		LCD_CMD_SetCursor(lcd, (lcd->cursor_x + 1), 0);
+		LCD_Cursor_SetPos(lcd, (lcd->cursor_x + 1), 0);
 	else
 		return LCD_ERROR_;
 

@@ -105,37 +105,38 @@ typedef enum{
 	LCD_RS_DATA    = 1
 }LCD_RS;
 
-LCD_ERROR LCD_SetPin_DB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_pin);
-LCD_ERROR LCD_SetPin_DB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1_pin);
-LCD_ERROR LCD_SetPin_DB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2_pin);
-LCD_ERROR LCD_SetPin_DB3(LCD_TypeDef *lcd, GPIO_TypeDef *db3_port, uint16_t db3_pin);
-LCD_ERROR LCD_SetPin_DB4(LCD_TypeDef *lcd, GPIO_TypeDef *db4_port, uint16_t db4_pin);
-LCD_ERROR LCD_SetPin_DB5(LCD_TypeDef *lcd, GPIO_TypeDef *db5_port, uint16_t db5_pin);
-LCD_ERROR LCD_SetPin_DB6(LCD_TypeDef *lcd, GPIO_TypeDef *db6_port, uint16_t db6_pin);
-LCD_ERROR LCD_SetPin_DB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7_pin);
-LCD_ERROR LCD_SetPin_RS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin);
-LCD_ERROR LCD_SetPin_Enable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin);
-LCD_ERROR LCD_SetPin_RW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin);
-LCD_ERROR LCD_SetDisplaySize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines);
-LCD_ERROR LCD_SetDisplayFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format);
+LCD_ERROR LCD_GPIO_SetDB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_pin);
+LCD_ERROR LCD_GPIO_SetDB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1_pin);
+LCD_ERROR LCD_GPIO_SetDB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2_pin);
+LCD_ERROR LCD_GPIO_SetDB3(LCD_TypeDef *lcd, GPIO_TypeDef *db3_port, uint16_t db3_pin);
+LCD_ERROR LCD_GPIO_SetDB4(LCD_TypeDef *lcd, GPIO_TypeDef *db4_port, uint16_t db4_pin);
+LCD_ERROR LCD_GPIO_SetDB5(LCD_TypeDef *lcd, GPIO_TypeDef *db5_port, uint16_t db5_pin);
+LCD_ERROR LCD_GPIO_SetDB6(LCD_TypeDef *lcd, GPIO_TypeDef *db6_port, uint16_t db6_pin);
+LCD_ERROR LCD_GPIO_SetDB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7_pin);
+LCD_ERROR LCD_GPIO_SetRS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin);
+LCD_ERROR LCD_GPIO_SetEnable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin);
+LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin);
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd);
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface);
 
-LCD_ERROR LCD_Enable_Display(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Disable_Display(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Enable_Cursor(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Disable_Cursor(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Enable_BlinkCursor(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Disable_BlinkCursor(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Display_SetSize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines);
+LCD_ERROR LCD_Display_SetFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format);
+LCD_ERROR LCD_Display_Enable(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Display_Disable(LCD_TypeDef *lcd);
 
-LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd);
-LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
-LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y);
+LCD_ERROR LCD_CMD_DisplayOnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
+LCD_ERROR LCD_Cursor_SetPos(LCD_TypeDef *lcd, uint8_t x, uint8_t y);
+LCD_ERROR LCD_Cursor_Enable(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Cursor_Disable(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Cursor_BlinkEnable(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Cursor_BlinkDisable(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Cursor_MovetoLeft(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Cursor_MovetoRight(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Cursor_MovetoUp(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Cursor_MovetoDown(LCD_TypeDef *lcd);
 
-LCD_ERROR LCD_MoveCursor_toLeft(LCD_TypeDef *lcd);
-LCD_ERROR LCD_MoveCursor_toRight(LCD_TypeDef *lcd);
-LCD_ERROR LCD_MoveCursor_toUp(LCD_TypeDef *lcd);
-LCD_ERROR LCD_MoveCursor_toDown(LCD_TypeDef *lcd);
+
+
 
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim);
 LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data);

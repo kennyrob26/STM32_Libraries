@@ -13,6 +13,38 @@
 
 TIM_HandleTypeDef *lcd_tim;
 
+static inline void cursor_x_increment(LCD_TypeDef *lcd)
+{
+	if(lcd->cursor_x < (lcd->size.max_lines - 1))
+		lcd->cursor_x++;
+	else
+		lcd->cursor_x = (lcd->size.max_lines - 1);
+}
+
+static inline void cursor_x_decrement(LCD_TypeDef *lcd)
+{
+	if(lcd->cursor_x > 0 && lcd->cursor_x < 6) //6 of buffer overflow (-1 = 255, -2 = 254...)
+		lcd->cursor_x--;
+	else
+		lcd->cursor_x = 0;
+}
+
+static inline void cursor_y_increment(LCD_TypeDef *lcd)
+{
+	if(lcd->cursor_y < (lcd->size.max_columns -1))
+		lcd->cursor_y++;
+	else
+		lcd->cursor_y = (lcd->size.max_columns - 1);
+}
+
+static inline void cursor_y_decrement(LCD_TypeDef *lcd)
+{
+	if(lcd->cursor_y > 0 && lcd->cursor_y < 30) //30 of buffer overflow (-1 = 255, -2 = 254...)
+		lcd->cursor_y--;
+	else
+		lcd->cursor_y = 0;
+}
+
 
 static inline void LCD_Delay_us(uint16_t us)
 {
@@ -321,7 +353,8 @@ LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 
 	uint8_t cursor_adress;
 
-	if(x >= lcd->size.max_lines || y >= lcd->size.max_columns);
+	if(x >= lcd->size.max_lines || y >= lcd->size.max_columns)
+		return LCD_ERROR_;
 
 	if(x == 0)
 		cursor_adress = LINE1 + y;
@@ -337,6 +370,34 @@ LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 	lcd->cursor_y = y;
 
 	return LCD_OK;
+}
+
+LCD_ERROR LCD_MoveCursor_toLeft(LCD_TypeDef *lcd)
+{
+	cursor_y_decrement(lcd);
+
+	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
+}
+
+LCD_ERROR LCD_MoveCursor_toRight(LCD_TypeDef *lcd)
+{
+	cursor_y_increment(lcd);
+
+	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
+}
+
+LCD_ERROR LCD_MoveCursor_toUp(LCD_TypeDef *lcd)
+{
+	cursor_x_decrement(lcd);
+
+	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
+}
+
+LCD_ERROR LCD_MoveCursor_toDown(LCD_TypeDef *lcd)
+{
+	cursor_x_increment(lcd);
+
+	return LCD_CMD_SetCursor(lcd, lcd->cursor_x, lcd->cursor_y);
 }
 
 LCD_ERROR LCD_SetAutoLineBreak(LCD_TypeDef *lcd, LCD_AutoLineBreak auto_line_break)

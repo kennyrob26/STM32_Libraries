@@ -131,6 +131,12 @@ LCD_ERROR LCD_Disable_BlinkCursor(LCD_TypeDef *lcd);
 LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd);
 LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
 LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y);
+
+LCD_ERROR LCD_MoveCursor_toLeft(LCD_TypeDef *lcd);
+LCD_ERROR LCD_MoveCursor_toRight(LCD_TypeDef *lcd);
+LCD_ERROR LCD_MoveCursor_toUp(LCD_TypeDef *lcd);
+LCD_ERROR LCD_MoveCursor_toDown(LCD_TypeDef *lcd);
+
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim);
 LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data);
 LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[]);

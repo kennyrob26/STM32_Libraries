@@ -49,15 +49,42 @@ typedef enum{
 	LCD_FORMAT_20_04 = 3
 }LCD_DisplayFormat;
 
+typedef enum{
+	LCD_AUTO_LINE_BREAK_DISABLE = 0,
+	LCD_AUTO_LINE_BREAK_ENABLE  = 1
+}LCD_AutoLineBreak;
+
+typedef enum
+{
+	LCD_DISPLAY_OFF = 0,
+	LCD_DISPLAY_ON  = 1
+}LCD_DisplayStatus;
+
+typedef enum
+{
+	LCD_CURSOR_DISABLE   = 0,
+	LCD_CURSOR_ENABLE    = 1
+}LCD_CursorStatus;
+
+typedef enum
+{
+	LCD_BLINK_CURSOR_DISABLE   = 0,
+	LCD_BLINK_CURSOR_ENABLE    = 1
+}LCD_CursorBlinkStatus;
+
 
 typedef struct
 {
 	LCD_Pins pin;
 	LCD_INTERFACE interface;
+	LCD_DisplayStatus display_status;
+	LCD_CursorStatus cursor_status;
+	LCD_CursorBlinkStatus cursor_blink_status;
 	LCD_DisplaySize size;
 	TIM_HandleTypeDef *tim;
 	uint8_t cursor_x;
 	uint8_t cursor_y;
+	LCD_AutoLineBreak auto_line_break;
 }LCD_TypeDef;
 
 typedef enum{
@@ -93,6 +120,15 @@ LCD_ERROR LCD_SetDisplaySize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines);
 LCD_ERROR LCD_SetDisplayFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format);
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd);
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface);
+
+LCD_ERROR LCD_Enable_Display(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Disable_Display(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Enable_Cursor(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Disable_Cursor(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Enable_BlinkCursor(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Disable_BlinkCursor(LCD_TypeDef *lcd);
+
+LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd);
 LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
 LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y);
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim);

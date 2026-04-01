@@ -238,15 +238,66 @@ LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor)
+LCD_ERROR LCD_Enable_Display(LCD_TypeDef *lcd)
+{
+	lcd->display_status = LCD_DISPLAY_ON;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Disable_Display(LCD_TypeDef *lcd)
+{
+	lcd->display_status = LCD_DISPLAY_OFF;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Enable_Cursor(LCD_TypeDef *lcd)
+{
+	lcd->cursor_status = LCD_CURSOR_ENABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Disable_Cursor(LCD_TypeDef *lcd)
+{
+	lcd->cursor_status = LCD_CURSOR_DISABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Enable_BlinkCursor(LCD_TypeDef *lcd)
+{
+	lcd->cursor_blink_status = LCD_BLINK_CURSOR_ENABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+LCD_ERROR LCD_Disable_BlinkCursor(LCD_TypeDef *lcd)
+{
+	lcd->cursor_blink_status = LCD_BLINK_CURSOR_DISABLE;
+	LCD_UpdateOnOff(lcd);
+	return LCD_OK;
+}
+
+
+LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd)
 {
 	uint8_t command = 0x08;
 
-	command |= ((display_on_off & 0x01) << 2);
-	command |= ((cursor & 0x01) << 1);
-	command |= (blink_cursor & 0x01);
+	command |= ((lcd->display_status & 0x01) << 2);
+	command |= ((lcd->cursor_status & 0x01) << 1);
+	command |= (lcd->cursor_blink_status & 0x01);
 
 	LCD_Send_CMD(lcd, command);
+}
+
+LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor)
+{
+	lcd->display_status = display_on_off;
+	lcd->cursor_status = cursor;
+	lcd->cursor_blink_status = blink_cursor;
+
+	LCD_UpdateOnOff(lcd);
 
 	return LCD_OK;
 }
@@ -288,6 +339,13 @@ LCD_ERROR LCD_CMD_SetCursor(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 	return LCD_OK;
 }
 
+LCD_ERROR LCD_SetAutoLineBreak(LCD_TypeDef *lcd, LCD_AutoLineBreak auto_line_break)
+{
+	lcd->auto_line_break = auto_line_break;
+	return LCD_OK;
+}
+
+
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim)
 {
 	if(lcd == NULL)
@@ -296,6 +354,7 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	if(lcd->size.max_columns == 0)
 		LCD_SetDisplayFormat(lcd, LCD_FORMAT_16_02);
 
+	LCD_SetAutoLineBreak(lcd, LCD_AUTO_LINE_BREAK_ENABLE);
 	lcd_tim = tim;
 
 	HAL_Delay(40);
@@ -304,7 +363,7 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	HAL_Delay(1);
 	LCD_CMD_FunctionSet(lcd, lcd_interface);
 	LCD_CMD_FunctionSet(lcd, lcd_interface);
-	LCD_CMD_OnOff(lcd, 1, 1, 0);
+	LCD_CMD_OnOff(lcd, LCD_DISPLAY_ON, LCD_CURSOR_DISABLE, LCD_BLINK_CURSOR_DISABLE);
 	HAL_Delay(1);
 	LCD_CMD_DisplayClear(lcd);
 	LCD_Send_CMD(lcd, 0x06);  //Display Entrey default;
@@ -312,12 +371,15 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
+static inline LCD_ERROR LCD_CheckEndLine(LCD_TypeDef *lcd)
 {
 	if(lcd->cursor_y >= lcd->size.max_columns)
 	{
 		if(lcd->cursor_x < (lcd->size.max_lines - 1))
-			LCD_LineBreak(lcd);
+		{
+			if(lcd->auto_line_break == LCD_AUTO_LINE_BREAK_ENABLE)
+				LCD_LineBreak(lcd);
+		}
 		else
 		{
 			lcd->cursor_y = lcd->size.max_columns;
@@ -326,6 +388,13 @@ LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
 
 	}
 
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
+{
+	if(LCD_CheckEndLine(lcd) != LCD_OK)
+		return LCD_ERROR_;
 
 	if(lcd->interface == LCD_INTERFACE_4BIT)
 	{
@@ -335,17 +404,11 @@ LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data)
 		LCD_Send_Nibble(lcd, low_nibble, LCD_LOW_NIBBLE, LCD_RS_DATA);
 	}
 
-	lcd->cursor_y++;
-
-	if(lcd->cursor_y >= lcd->size.max_columns)
-	{
-		if(lcd->cursor_x < (lcd->size.max_lines - 1))
-			LCD_LineBreak(lcd);
-		else
-			lcd->cursor_y = lcd->size.max_columns;   //cursor move to after last char
-	}
-
 	LCD_Delay_us(50);
+
+	lcd->cursor_y++;
+	LCD_CheckEndLine(lcd);
+
 
 	return LCD_OK;
 }
@@ -355,7 +418,7 @@ LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[])
 	uint8_t i = 0;
 	while(string[i] != '\0')
 	{
-		if(LCD_Send_Data(lcd, string[i]) == LCD_ERROR_)
+		if(LCD_Send_Data(lcd, string[i]) != LCD_OK)
 			break;
 		i++;
 	}

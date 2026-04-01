@@ -116,15 +116,16 @@ LCD_ERROR LCD_GPIO_SetDB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7
 LCD_ERROR LCD_GPIO_SetRS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin);
 LCD_ERROR LCD_GPIO_SetEnable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin);
 LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin);
+
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd);
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface);
 
+LCD_ERROR LCD_CMD_DisplayOnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
 LCD_ERROR LCD_Display_SetSize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines);
 LCD_ERROR LCD_Display_SetFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format);
 LCD_ERROR LCD_Display_Enable(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Display_Disable(LCD_TypeDef *lcd);
 
-LCD_ERROR LCD_CMD_DisplayOnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
 LCD_ERROR LCD_Cursor_SetPos(LCD_TypeDef *lcd, uint8_t x, uint8_t y);
 LCD_ERROR LCD_Cursor_Enable(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Cursor_Disable(LCD_TypeDef *lcd);
@@ -135,13 +136,17 @@ LCD_ERROR LCD_Cursor_MovetoRight(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Cursor_MovetoUp(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Cursor_MovetoDown(LCD_TypeDef *lcd);
 
-
-
-
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim);
-LCD_ERROR LCD_Send_Data(LCD_TypeDef *lcd, uint8_t data);
+LCD_ERROR LCD_Send_Char(LCD_TypeDef *lcd, uint8_t data);
 LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[]);
-LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd);
-LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Send_Backspace(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd);
+
+LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line);
+LCD_ERROR LCD_Clear_CurrentLine(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd);
+
+
 
 #endif /* INC_LCD1602_H_ */

@@ -530,6 +530,47 @@ LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
+LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	return LCD_Send_Char(lcd, ' ');
+}
+
+LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	if(line >= lcd->size.max_lines)
+		return LCD_ERROR_;
+
+	LCD_Cursor_SetPos(lcd, line, 0);
+	for(uint8_t i=0; i<lcd->size.max_columns; i++)
+	{
+		LCD_Cursor_SetPos(lcd, line, i);
+		LCD_Clear_Char(lcd);
+	}
+
+	LCD_Cursor_SetPos(lcd, line, 0);
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	for(uint8_t i=0; i<lcd->size.max_lines; i++)
+	{
+		LCD_Clear_Line(lcd, i);
+	}
+
+	LCD_Cursor_SetPos(lcd, 0, 0);
+
+	return LCD_OK;
+}
 
 
 

@@ -573,6 +573,92 @@ LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd)
 }
 
 
+LCD_ERROR LCD_Area_CreateNew(LCD_TypeDef *lcd, LCD_Area *area)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(area == NULL)
+		return LCD_ERROR_;
+
+	uint8_t line_size  = (area->y2 - area->y1) + 1;
+	uint8_t line_count = (area->x2 - area->x1) + 1;
+
+	area->lines = line_count;
+	area->line_length = line_size;
+	area->lentgth = line_count * line_size;
+
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Clear_Area(LCD_TypeDef *lcd, LCD_Area *area)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(area == NULL)
+		return LCD_ERROR_;
+
+	for(uint8_t i=area->x1; i <= area->x2; i++)
+	{
+		for(uint8_t j=area->y1; j <= area->y2; j++)
+		{
+			LCD_Cursor_SetPos(lcd, i, j);
+			LCD_Clear_Char(lcd);
+		}
+	}
+
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Area_Update(LCD_TypeDef *lcd, LCD_Area *area, uint8_t string[])
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(area == NULL)
+		return LCD_ERROR_;
+
+	uint8_t i=0;
+	uint8_t x = area->x1;
+	uint8_t y = area->y1;
+
+	while(string[i] != 0)
+	{
+		if(y > area->y2 || string[i] == '\n')
+		{
+			if(x < area->x2)
+			{
+				x++;
+				y = area->y1;
+			}
+			else
+				break;
+
+			if(string[i] == '\n')
+			{
+				i++;
+				continue;
+			}
+		}
+
+
+		LCD_Cursor_SetPos(lcd, x, y);
+		LCD_Send_Char(lcd, string[i]);
+
+		y++;
+		i++;
+	}
+
+	return LCD_OK;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -105,6 +105,17 @@ typedef enum{
 	LCD_RS_DATA    = 1
 }LCD_RS;
 
+typedef struct
+{
+	uint8_t x1;
+	uint8_t y1;
+	uint8_t x2;
+	uint8_t y2;
+	uint8_t lines;
+	uint8_t line_length;
+	uint8_t lentgth;
+}LCD_Area;
+
 LCD_ERROR LCD_GPIO_SetDB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_pin);
 LCD_ERROR LCD_GPIO_SetDB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1_pin);
 LCD_ERROR LCD_GPIO_SetDB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2_pin);
@@ -144,9 +155,11 @@ LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd);
 
 LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line);
-LCD_ERROR LCD_Clear_CurrentLine(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd);
 
+LCD_ERROR LCD_Area_CreateNew(LCD_TypeDef *lcd, LCD_Area *area);
+LCD_ERROR LCD_Clear_Area(LCD_TypeDef *lcd, LCD_Area *area);
+LCD_ERROR LCD_Area_Update(LCD_TypeDef *lcd, LCD_Area *area, uint8_t string[]);
 
 
 #endif /* INC_LCD1602_H_ */

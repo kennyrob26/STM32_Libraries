@@ -37,6 +37,23 @@ typedef enum{
 	LCD_INTERFACE_I2C  = 2
 }LCD_INTERFACE;
 
+typedef enum
+{
+	LCD_LINE1_ADDRESS = 0x00,
+	LCD_LINE2_ADDRESS = 0x40,
+	LCD_LINE3_ADDRESS = 0x10,
+	LCD_LINE4_ADDRESS = 0x50
+}LCD_Line_Adress;
+
+typedef enum
+{
+	LCD_LINE1 = 0,
+	LCD_LINE2 = 1,
+	LCD_LINE3 = 2,
+	LCD_LINE4 = 3
+}LCD_Line;
+
+
 typedef struct{
 	uint8_t max_lines;
 	uint8_t max_columns;
@@ -107,6 +124,7 @@ typedef enum{
 
 typedef struct
 {
+	LCD_TypeDef *lcd;
 	uint8_t x1;
 	uint8_t y1;
 	uint8_t x2;
@@ -152,14 +170,16 @@ LCD_ERROR LCD_Send_Char(LCD_TypeDef *lcd, uint8_t data);
 LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[]);
 LCD_ERROR LCD_Send_Backspace(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Send_Tab(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Send_CarrigeReturn(LCD_TypeDef *lcd);
 
 LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line);
 LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd);
 
 LCD_ERROR LCD_Area_CreateNew(LCD_TypeDef *lcd, LCD_Area *area);
-LCD_ERROR LCD_Clear_Area(LCD_TypeDef *lcd, LCD_Area *area);
-LCD_ERROR LCD_Area_Update(LCD_TypeDef *lcd, LCD_Area *area, uint8_t string[]);
+LCD_ERROR LCD_Clear_Area(LCD_Area *area);
+LCD_ERROR LCD_Area_Update(LCD_Area *area, uint8_t string[]);
 
 
 #endif /* INC_LCD1602_H_ */

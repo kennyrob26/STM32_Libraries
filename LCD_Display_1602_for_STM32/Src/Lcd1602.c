@@ -8,8 +8,6 @@
 
 #include "Lcd1602.h"
 
-#define LINE1 0x00
-#define LINE2 0x40
 
 TIM_HandleTypeDef *lcd_tim;
 
@@ -54,6 +52,29 @@ static inline void LCD_Delay_us(uint16_t us)
 	{/*Wait time*/};
 }
 
+static inline uint8_t LCD_Check_EscapeSequence(LCD_TypeDef *lcd, uint8_t data)
+{
+	switch (data) {
+		case '\n':
+			LCD_Send_LineBreak(lcd);
+			return 1;
+		break;
+		case '\b':
+			LCD_Send_Backspace(lcd);
+			return 1;
+		break;
+		case '\t':
+			LCD_Send_Tab(lcd);
+			return 1;
+		break;
+		case '\r':
+			LCD_Send_CarrigeReturn(lcd);
+			return 1;
+		default:
+			return 0;
+			break;
+	}
+}
 
 LCD_ERROR LCD_GPIO_SetDB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_pin)
 {
@@ -191,8 +212,6 @@ static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Ty
 	uint8_t d5_value = (nibble >> 1) & 0x01;
 	uint8_t d4_value = nibble & 0x01;
 
-
-
 	HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
 	HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
 	LCD_Delay_us(1);
@@ -221,7 +240,7 @@ LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd)
 		uint8_t high_nibble = (cmd >> 4) & 0x0F;
 		uint8_t low_nibble  = cmd & 0x0F;
 		LCD_Send_Nibble(lcd, high_nibble, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
-		LCD_Send_Nibble(lcd, low_nibble, LCD_LOW_NIBBLE, LCD_RS_CONTROL);
+		LCD_Send_Nibble(lcd, low_nibble, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
 	}
 
 	return LCD_OK;
@@ -320,9 +339,9 @@ LCD_ERROR LCD_Cursor_SetPos(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 		return LCD_ERROR_;
 
 	if(x == 0)
-		cursor_adress = LINE1 + y;
+		cursor_adress = LCD_LINE1_ADDRESS + y;
 	else if(x == 1)
-		cursor_adress = LINE2 + y;
+		cursor_adress = LCD_LINE2_ADDRESS + y;
 
 	cursor_adress |= 0x80; //1xxxxxxx
 
@@ -463,6 +482,9 @@ LCD_ERROR LCD_Send_Char(LCD_TypeDef *lcd, uint8_t data)
 	if(LCD_CheckEndLine(lcd) != LCD_OK)
 		return LCD_ERROR_;
 
+	if(LCD_Check_EscapeSequence(lcd, data))
+		return LCD_OK;
+
 	if(lcd->interface == LCD_INTERFACE_4BIT)
 	{
 		uint8_t high_nibble = (data >> 4) & 0x0F;
@@ -530,6 +552,21 @@ LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
+LCD_ERROR LCD_Send_Tab(LCD_TypeDef *lcd)
+{
+	LCD_Send_String(lcd, "   ");
+
+	return LCD_OK;
+}
+
+LCD_ERROR LCD_Send_CarrigeReturn(LCD_TypeDef *lcd)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	LCD_Cursor_SetPos(lcd, lcd->cursor_x, 0);
+}
+
 LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
@@ -575,10 +612,10 @@ LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd)
 
 LCD_ERROR LCD_Area_CreateNew(LCD_TypeDef *lcd, LCD_Area *area)
 {
-	if(lcd == NULL)
-		return LCD_ERROR_HADLE_NOT_DEFINED;
 	if(area == NULL)
 		return LCD_ERROR_;
+
+	area->lcd = lcd;
 
 	uint8_t line_size  = (area->y2 - area->y1) + 1;
 	uint8_t line_count = (area->x2 - area->x1) + 1;
@@ -590,31 +627,33 @@ LCD_ERROR LCD_Area_CreateNew(LCD_TypeDef *lcd, LCD_Area *area)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Clear_Area(LCD_TypeDef *lcd, LCD_Area *area)
+LCD_ERROR LCD_Clear_Area(LCD_Area *area)
 {
-	if(lcd == NULL)
-		return LCD_ERROR_HADLE_NOT_DEFINED;
 	if(area == NULL)
 		return LCD_ERROR_;
+	if(area->lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
 
 	for(uint8_t i=area->x1; i <= area->x2; i++)
 	{
 		for(uint8_t j=area->y1; j <= area->y2; j++)
 		{
-			LCD_Cursor_SetPos(lcd, i, j);
-			LCD_Clear_Char(lcd);
+			LCD_Cursor_SetPos(area->lcd, i, j);
+			LCD_Clear_Char(area->lcd);
 		}
 	}
 
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Area_Update(LCD_TypeDef *lcd, LCD_Area *area, uint8_t string[])
+LCD_ERROR LCD_Area_Update(LCD_Area *area, uint8_t string[])
 {
-	if(lcd == NULL)
-		return LCD_ERROR_HADLE_NOT_DEFINED;
 	if(area == NULL)
 		return LCD_ERROR_;
+	if(area->lcd == NULL)
+			return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	LCD_Clear_Area(area);
 
 	uint8_t i=0;
 	uint8_t x = area->x1;
@@ -622,7 +661,7 @@ LCD_ERROR LCD_Area_Update(LCD_TypeDef *lcd, LCD_Area *area, uint8_t string[])
 
 	while(string[i] != 0)
 	{
-		if(y > area->y2 || string[i] == '\n')
+		if(y > area->y2)
 		{
 			if(x < area->x2)
 			{
@@ -632,18 +671,14 @@ LCD_ERROR LCD_Area_Update(LCD_TypeDef *lcd, LCD_Area *area, uint8_t string[])
 			else
 				break;
 
-			if(string[i] == '\n')
-			{
-				i++;
-				continue;
-			}
 		}
 
 
-		LCD_Cursor_SetPos(lcd, x, y);
-		LCD_Send_Char(lcd, string[i]);
+		LCD_Cursor_SetPos(area->lcd, x, y);
+		LCD_Send_Char(area->lcd, string[i]);
 
-		y++;
+		if(string[i] != '\n' && string[i] != '\t' && string[i] != '\b')
+			y++;
 		i++;
 	}
 

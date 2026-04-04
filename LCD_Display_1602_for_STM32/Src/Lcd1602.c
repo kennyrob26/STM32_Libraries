@@ -8,6 +8,9 @@
 
 #include "Lcd1602.h"
 
+#include "stdarg.h"
+#include "stdio.h"
+
 
 TIM_HandleTypeDef *lcd_tim;
 
@@ -56,19 +59,19 @@ static inline uint8_t LCD_Check_EscapeSequence(LCD_TypeDef *lcd, uint8_t data)
 {
 	switch (data) {
 		case '\n':
-			LCD_Send_LineBreak(lcd);
+			LCD_LineBreak(lcd);
 			return 1;
 		break;
 		case '\b':
-			LCD_Send_Backspace(lcd);
+			LCD_Backspace(lcd);
 			return 1;
 		break;
 		case '\t':
-			LCD_Send_Tab(lcd);
+			LCD_Tab(lcd);
 			return 1;
 		break;
 		case '\r':
-			LCD_Send_CarrigeReturn(lcd);
+			LCD_CarrigeReturn(lcd);
 			return 1;
 		default:
 			return 0;
@@ -464,7 +467,7 @@ static inline LCD_ERROR LCD_CheckEndLine(LCD_TypeDef *lcd)
 		if(lcd->cursor_x < (lcd->size.max_lines - 1))
 		{
 			if(lcd->auto_line_break == LCD_AUTO_LINE_BREAK_ENABLE)
-				LCD_Send_LineBreak(lcd);
+				LCD_LineBreak(lcd);
 		}
 		else
 		{
@@ -477,7 +480,7 @@ static inline LCD_ERROR LCD_CheckEndLine(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_Char(LCD_TypeDef *lcd, uint8_t data)
+LCD_ERROR LCD_PutChar(LCD_TypeDef *lcd, uint8_t data)
 {
 	if(LCD_CheckEndLine(lcd) != LCD_OK)
 		return LCD_ERROR_;
@@ -502,12 +505,12 @@ LCD_ERROR LCD_Send_Char(LCD_TypeDef *lcd, uint8_t data)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[])
+LCD_ERROR LCD_Print(LCD_TypeDef *lcd, const char *string)
 {
 	uint8_t i = 0;
 	while(string[i] != '\0')
 	{
-		if(LCD_Send_Char(lcd, string[i]) != LCD_OK)
+		if(LCD_PutChar(lcd, string[i]) != LCD_OK)
 			break;
 		i++;
 	}
@@ -515,7 +518,20 @@ LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[])
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_Backspace(LCD_TypeDef *lcd)
+LCD_ERROR LCD_PrintF(LCD_TypeDef *lcd, const char *stringf, ...)
+{
+	va_list args; //arg list (...)
+	va_start(args, stringf);
+
+	char send_string[32];
+	//sprintf(send_string, stringf, args);
+	vsnprintf(send_string, sizeof(send_string), stringf, args);
+	va_end(args);
+
+	return LCD_Print(lcd, send_string);
+}
+
+LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
 {
 	uint8_t previous_x = 0;
 	uint8_t previous_y = 0;
@@ -536,13 +552,13 @@ LCD_ERROR LCD_Send_Backspace(LCD_TypeDef *lcd)
 
 
 	LCD_Cursor_SetPos(lcd, previous_x, previous_y);
-	LCD_Send_Char(lcd, ' ');
+	LCD_PutChar(lcd, ' ');
 	LCD_Cursor_SetPos(lcd, previous_x, previous_y);
 
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd)
+LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd)
 {
 	if(lcd->cursor_x < (lcd->size.max_lines - 1))
 		LCD_Cursor_SetPos(lcd, (lcd->cursor_x + 1), 0);
@@ -552,14 +568,17 @@ LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_Tab(LCD_TypeDef *lcd)
+LCD_ERROR LCD_Tab(LCD_TypeDef *lcd)
 {
-	LCD_Send_String(lcd, "   ");
+	uint8_t pos_y = ((uint8_t)(lcd->cursor_y / 3) + 1) * 3;
+
+	LCD_Cursor_SetPos(lcd, lcd->cursor_x, pos_y);
+	//LCD_Send_String(lcd, "   ");
 
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_Send_CarrigeReturn(LCD_TypeDef *lcd)
+LCD_ERROR LCD_CarrigeReturn(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
@@ -572,7 +591,7 @@ LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd)
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
-	return LCD_Send_Char(lcd, ' ');
+	return LCD_PutChar(lcd, ' ');
 }
 
 LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line)
@@ -675,7 +694,7 @@ LCD_ERROR LCD_Area_Update(LCD_Area *area, uint8_t string[])
 
 
 		LCD_Cursor_SetPos(area->lcd, x, y);
-		LCD_Send_Char(area->lcd, string[i]);
+		LCD_PutChar(area->lcd, string[i]);
 
 		if(string[i] != '\n' && string[i] != '\t' && string[i] != '\b')
 			y++;

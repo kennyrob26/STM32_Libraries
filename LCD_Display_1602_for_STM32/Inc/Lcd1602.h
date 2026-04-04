@@ -166,12 +166,13 @@ LCD_ERROR LCD_Cursor_MovetoUp(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Cursor_MovetoDown(LCD_TypeDef *lcd);
 
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim);
-LCD_ERROR LCD_Send_Char(LCD_TypeDef *lcd, uint8_t data);
-LCD_ERROR LCD_Send_String(LCD_TypeDef *lcd, uint8_t string[]);
-LCD_ERROR LCD_Send_Backspace(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Send_LineBreak(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Send_Tab(LCD_TypeDef *lcd);
-LCD_ERROR LCD_Send_CarrigeReturn(LCD_TypeDef *lcd);
+LCD_ERROR LCD_PutChar(LCD_TypeDef *lcd, uint8_t data);
+LCD_ERROR LCD_Print(LCD_TypeDef *lcd, const char *string);
+LCD_ERROR LCD_PrintF(LCD_TypeDef *lcd, const char *stringf, ...);
+LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd);
+LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd);
+LCD_ERROR LCD_Tab(LCD_TypeDef *lcd);
+LCD_ERROR LCD_CarrigeReturn(LCD_TypeDef *lcd);
 
 LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd);
 LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line);

@@ -106,11 +106,12 @@ typedef struct
 }LCD_TypeDef;
 
 typedef enum{
-	LCD_OK                       = 0,
-	LCD_ERROR_HADLE_NOT_DEFINED  = 1,
-	LCD_ERROR_INCORRECT_PARAM    = 2,
-	LCD_ERROR_TIMEOUT            = 3,
-	LCD_ERROR_					 = 4
+	LCD_OK                       	 = 0,
+	LCD_ERROR_HADLE_NOT_DEFINED  	 = 1,
+	LCD_ERROR_I2C_HANDLE_NOT_DEFINED = 2,
+	LCD_ERROR_INCORRECT_PARAM        = 3,
+	LCD_ERROR_TIMEOUT            	 = 4,
+	LCD_ERROR_					 	 = 5
 }LCD_ERROR;
 
 typedef enum{
@@ -149,7 +150,7 @@ LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pi
 LCD_ERROR LCD_I2C_SetI2CHandle(LCD_TypeDef *lcd, I2C_HandleTypeDef *i2c);
 
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd);
-LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface);
+LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd);
 
 LCD_ERROR LCD_CMD_DisplayOnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
 LCD_ERROR LCD_Display_SetSize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines);

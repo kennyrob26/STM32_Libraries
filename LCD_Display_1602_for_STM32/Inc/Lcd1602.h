@@ -89,19 +89,30 @@ typedef enum
 	LCD_BLINK_CURSOR_ENABLE    = 1
 }LCD_CursorBlinkStatus;
 
+typedef struct
+{
+	LCD_DisplayStatus display_status;
+	LCD_CursorStatus cursor_status;
+	LCD_CursorBlinkStatus cursor_blink_status;
+}LCD_CmdOnOff;
+
+typedef struct
+{
+	uint8_t x;
+	uint8_t y;
+}LCD_CursorPos;
 
 typedef struct
 {
 	LCD_Pins pin;
 	LCD_INTERFACE interface;
 	I2C_HandleTypeDef *i2c;
-	LCD_DisplayStatus display_status;
-	LCD_CursorStatus cursor_status;
-	LCD_CursorBlinkStatus cursor_blink_status;
+	LCD_CmdOnOff cmd_onOff;
 	LCD_DisplaySize size;
 	TIM_HandleTypeDef *tim;
-	uint8_t cursor_x;
-	uint8_t cursor_y;
+	LCD_CursorPos cursor;
+	//uint8_t cursor_x;
+	//uint8_t cursor_y;
 	LCD_AutoLineBreak auto_line_break;
 }LCD_TypeDef;
 
@@ -152,7 +163,7 @@ LCD_ERROR LCD_I2C_SetI2CHandle(LCD_TypeDef *lcd, I2C_HandleTypeDef *i2c);
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd);
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd);
 
-LCD_ERROR LCD_CMD_DisplayOnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor);
+LCD_ERROR LCD_CMD_DisplayOnOff(LCD_TypeDef *lcd, LCD_DisplayStatus display_status, LCD_CursorStatus cursor_status, LCD_CursorBlinkStatus blink_status);
 LCD_ERROR LCD_Display_SetSize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines);
 LCD_ERROR LCD_Display_SetFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format);
 LCD_ERROR LCD_Display_Enable(LCD_TypeDef *lcd);

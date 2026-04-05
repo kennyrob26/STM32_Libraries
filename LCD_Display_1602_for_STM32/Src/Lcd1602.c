@@ -19,34 +19,34 @@ TIM_HandleTypeDef *lcd_tim;
 
 static inline void cursor_x_increment(LCD_TypeDef *lcd)
 {
-	if(lcd->cursor_x < (lcd->size.max_lines - 1))
-		lcd->cursor_x++;
+	if(lcd->cursor.x < (lcd->size.max_lines - 1))
+		lcd->cursor.x++;
 	else
-		lcd->cursor_x = (lcd->size.max_lines - 1);
+		lcd->cursor.x = (lcd->size.max_lines - 1);
 }
 
 static inline void cursor_x_decrement(LCD_TypeDef *lcd)
 {
-	if(lcd->cursor_x > 0 && lcd->cursor_x < 6) //6 of buffer overflow (-1 = 255, -2 = 254...)
-		lcd->cursor_x--;
+	if(lcd->cursor.x > 0 && lcd->cursor.x < 6) //6 of buffer overflow (-1 = 255, -2 = 254...)
+		lcd->cursor.x--;
 	else
-		lcd->cursor_x = 0;
+		lcd->cursor.x = 0;
 }
 
 static inline void cursor_y_increment(LCD_TypeDef *lcd)
 {
-	if(lcd->cursor_y < (lcd->size.max_columns -1))
-		lcd->cursor_y++;
+	if(lcd->cursor.y < (lcd->size.max_columns -1))
+		lcd->cursor.y++;
 	else
-		lcd->cursor_y = (lcd->size.max_columns - 1);
+		lcd->cursor.y = (lcd->size.max_columns - 1);
 }
 
 static inline void cursor_y_decrement(LCD_TypeDef *lcd)
 {
-	if(lcd->cursor_y > 0 && lcd->cursor_y < 30) //30 of buffer overflow (-1 = 255, -2 = 254...)
-		lcd->cursor_y--;
+	if(lcd->cursor.y > 0 && lcd->cursor.y < 30) //30 of buffer overflow (-1 = 255, -2 = 254...)
+		lcd->cursor.y--;
 	else
-		lcd->cursor_y = 0;
+		lcd->cursor.y = 0;
 }
 
 
@@ -108,11 +108,26 @@ static inline uint8_t LCD_Check_EscapeSequence(LCD_TypeDef *lcd, uint8_t data)
 	}
 }
 
+/**
+ * @brief Set a GPIO param in GPIO of struct
+ *
+ * @note This functions is the basis for all others functions gpio setter of struct lcd
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param **lcd_gpio_port is a pointer for pointer lcd->pin.gpio.port, save a port in lcd struct
+ * @param *lcd_gpio_pin is a pointer for lcd->pin.gpio.pin, save a pin in lcd struct
+ * @param *gpio_port it's a gpio port we want to set in *lcd_gpio_port of lcd struct
+ * @param  gpio_pin it's a gpio pin we want to set in *lcd_gpio_pin of lcd_struct
+ *
+ * @retval LCD_ERROR
+ *
+ */
+
 static inline LCD_ERROR LCD_GPIO_Set(LCD_TypeDef *lcd,GPIO_TypeDef **lcd_gpio_port, uint16_t *lcd_gpio_pin, GPIO_TypeDef *gpio_port, uint16_t gpio_pin)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
-	if(gpio_port == NULL)
+	if(gpio_port == NULL || lcd_gpio_pin == NULL || gpio_port == NULL)
 		return LCD_ERROR_INCORRECT_PARAM;
 
 	*lcd_gpio_port = gpio_port;
@@ -127,9 +142,7 @@ static inline LCD_ERROR LCD_GPIO_Set(LCD_TypeDef *lcd,GPIO_TypeDef **lcd_gpio_po
  * @param *db0_port it's the DB0 GPIO port
  * @param db0_pin it's the DB0 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ *  @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0_pin)
@@ -144,9 +157,7 @@ LCD_ERROR LCD_GPIO_SetDB0(LCD_TypeDef *lcd, GPIO_TypeDef *db0_port, uint16_t db0
  * @param *db1_port it's the DB1 GPIO port
  * @param db1_pin it's the DB1 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1_pin)
@@ -161,9 +172,7 @@ LCD_ERROR LCD_GPIO_SetDB1(LCD_TypeDef *lcd, GPIO_TypeDef *db1_port, uint16_t db1
  * @param *db2_port it's the DB2 GPIO port
  * @param db2_pin it's the DB2 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2_pin)
@@ -178,9 +187,7 @@ LCD_ERROR LCD_GPIO_SetDB2(LCD_TypeDef *lcd, GPIO_TypeDef *db2_port, uint16_t db2
  * @param *db3_port it's the DB3 GPIO port
  * @param db3_pin it's the DB3 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB3(LCD_TypeDef *lcd, GPIO_TypeDef *db3_port, uint16_t db3_pin)
@@ -195,9 +202,7 @@ LCD_ERROR LCD_GPIO_SetDB3(LCD_TypeDef *lcd, GPIO_TypeDef *db3_port, uint16_t db3
  * @param *db4_port it's the DB4 GPIO port
  * @param db4_pin it's the DB4 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB4(LCD_TypeDef *lcd, GPIO_TypeDef *db4_port, uint16_t db4_pin)
@@ -212,9 +217,7 @@ LCD_ERROR LCD_GPIO_SetDB4(LCD_TypeDef *lcd, GPIO_TypeDef *db4_port, uint16_t db4
  * @param *db5_port it's the DB5 GPIO port
  * @param db5_pin it's the DB5 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB5(LCD_TypeDef *lcd, GPIO_TypeDef *db5_port, uint16_t db5_pin)
@@ -229,9 +232,7 @@ LCD_ERROR LCD_GPIO_SetDB5(LCD_TypeDef *lcd, GPIO_TypeDef *db5_port, uint16_t db5
  * @param *db6_port it's the DB6 GPIO port
  * @param db6_pin it's the DB6 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB6(LCD_TypeDef *lcd, GPIO_TypeDef *db6_port, uint16_t db6_pin)
@@ -246,9 +247,7 @@ LCD_ERROR LCD_GPIO_SetDB6(LCD_TypeDef *lcd, GPIO_TypeDef *db6_port, uint16_t db6
  * @param *db7_port it's the DB7 GPIO port
  * @param db7_pin it's the DB7 GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetDB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7_pin)
@@ -263,9 +262,7 @@ LCD_ERROR LCD_GPIO_SetDB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7
  * @param *rs_port it's the RS GPIO port
  * @param rs_pin it's the RS GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetRS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin)
@@ -280,9 +277,7 @@ LCD_ERROR LCD_GPIO_SetRS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pi
  * @param *enable_port it's the EN GPIO port
  * @param enable_pin it's the EN GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetEnable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin)
@@ -297,9 +292,7 @@ LCD_ERROR LCD_GPIO_SetEnable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16
  * @param *rw_port it's the RW GPIO port
  * @param rw_pin it's the RW GPIO pin
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_INCORRECT_PARAM if params is not accepted
- * @return LCD_OK if setter the pin is successful
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin)
@@ -315,9 +308,7 @@ LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pi
  * @param *lcd is a pointer for Lcd Handle
  * @param *i2c is a pointer for i2c Handle
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_ERROR_I2C_HANDLE_NOT_DEFINED if i2c handle not defined
- * @return LCD_OK if handle i2c is setted
+ * @retval LCD_ERROR
  *
  */
 LCD_ERROR LCD_I2C_SetI2CHandle(LCD_TypeDef *lcd, I2C_HandleTypeDef *i2c)
@@ -357,7 +348,7 @@ static LCD_ERROR LCD_Send_Byte(LCD_TypeDef *lcd, uint8_t byte, LCD_RS rs)
  * @param nibble_type define is is a high or low nibble
  * @param rs define a rs pin state
  *
- *
+ * @retval LCD_ERROR
  */
 static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Type nibble_type, LCD_RS rs)
 {
@@ -424,14 +415,13 @@ static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Ty
 /**
  * @brief Send a CMD LCD
  *
- * This function sending a command for display, commands is listen in datasheet
- * for sending command defined RS in LOW
+ * @note This function sending a command for display, commands is listen in datasheet
+ *       for sending command defined RS in LOW
  *
  * @param *lcd is a pointer for Lcd Handle
  * @param cmd is a us command
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_OK if send command is ok
+ * @retval LCD_ERROR
  */
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd)
 {
@@ -450,12 +440,14 @@ LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd)
 /**
  * @brief Command Function Set
  *
- * This is a default command for LCD, is important for initialization of the display
+ * @note This is a standard LCD command, important for display initialization.
+ * 		 It defines whether the communication (MCU -> LCD) is 4-bit or 8-bit
+ * @note Set 0x28 to use 4 bits (nibble)
+ * @note set 0x38 to use 8 bits (byte)
  *
  * @param *lcd is a pointer for Lcd Handle
  *
- * @return LCD_ERROR_HANDLE_NOT_DEFINE if lcd handle is not defined
- * @return LCD_OK the command was sent
+ * @retval LCD_ERROR
  */
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd)
 {
@@ -479,30 +471,76 @@ LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd)
 	return lcd_error;
 }
 
+/*
+ * @brief Update a Command Display ON/OFF
+ *
+ * @note The command Display ON/OFF performs several functions. For this reason, we need an update function.
+ *       All functions that use the ON/OFF command are required to perform this update to maintain synchronization
+ *       between the display and the MCU.
+ *
+ * @note this function  uses struct params for update:
+ * 	     - lcd->cmd_onOff.display_status -  ON/OFF display
+ * 	     - lcd->cmd_onOff.cursor_status  -  ON/OFF cursor
+ * 	     - lcd->cmd_onOff.cursor_status  -  ON/OFF blink cursor
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
+
 static inline LCD_ERROR LCD_UpdateOnOff(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	uint8_t command = 0x08;
 
-	command |= ((lcd->display_status & 0x01) << 2);
-	command |= ((lcd->cursor_status & 0x01) << 1);
-	command |= (lcd->cursor_blink_status & 0x01);
+	command |= ((lcd->cmd_onOff.display_status & 0x01) << 2);
+	command |= ((lcd->cmd_onOff.cursor_status & 0x01) << 1);
+	command |= (lcd->cmd_onOff.cursor_blink_status & 0x01);
 
 	LCD_Send_CMD(lcd, command);
 
 	return LCD_OK;
 }
 
-LCD_ERROR LCD_CMD_OnOff(LCD_TypeDef *lcd, uint8_t display_on_off, uint8_t cursor, uint8_t blink_cursor)
+/**
+ * @brief Command Display ON/OFF
+ *
+ * @note This is a standard LCD command that sets the state of the display and cursor
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param display_status defines whether the display ON/OFF
+ * @param cursor_status  defines whether the cursor is enabled or disabled.
+ * @param blink_status   defines whether the blinking cursor is enabled or disabled.
+ *
+ * @retval LCD_ERROR
+ */
+LCD_ERROR LCD_CMD_DisplayOnOff(LCD_TypeDef *lcd, LCD_DisplayStatus display_status, LCD_CursorStatus cursor_status, LCD_CursorBlinkStatus blink_status)
 {
-	lcd->display_status = display_on_off;
-	lcd->cursor_status = cursor;
-	lcd->cursor_blink_status = blink_cursor;
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	lcd->cmd_onOff.display_status = display_status;
+	lcd->cmd_onOff.cursor_status = cursor_status;
+	lcd->cmd_onOff.cursor_blink_status = blink_status;
 
 	LCD_UpdateOnOff(lcd);
 
 	return LCD_OK;
 }
 
+/**
+ * @brief Define Display Size
+ *
+ * @note This function set the display size (columns x lines)
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param columns defines how many columns the display has
+ * @param lines  defines how many lines the display has
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Display_SetSize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines)
 {
 	if(lcd == NULL)
@@ -516,6 +554,16 @@ LCD_ERROR LCD_Display_SetSize(LCD_TypeDef *lcd, uint8_t columns, uint8_t lines)
 	return LCD_OK;
 }
 
+/**
+ * @brief Define Display format
+ *
+ * @note This function set the display format (16x2, 16x4...)
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param format is the LCD_DisplayFormat type
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Display_SetFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format)
 {
 	if(lcd == NULL)
@@ -535,20 +583,51 @@ LCD_ERROR LCD_Display_SetFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format)
 			return LCD_ERROR_INCORRECT_PARAM;
 	}
 }
+
+/**
+ * @brief On Display
+ *
+ * @note define display ON (read ram data)
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Display_Enable(LCD_TypeDef *lcd)
 {
-	lcd->display_status = LCD_DISPLAY_ON;
+	lcd->cmd_onOff.display_status = LCD_DISPLAY_ON;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
 }
 
+/**
+ * @brief Off Display
+ *
+ * @note define display OFF (not read ram data)
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Display_Disable(LCD_TypeDef *lcd)
 {
-	lcd->display_status = LCD_DISPLAY_OFF;
+	lcd->cmd_onOff.display_status = LCD_DISPLAY_OFF;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
 }
 
+/**
+ * @brief Set a cursor position
+ *
+ * @note Defines the x and y position of the cursor, with the initial position at 0
+ *       and the final position at a max of -1.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param  x is the x-coordinate of the cursor
+ * @param  y is the y-coordinate of the cursor
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_SetPos(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 {
 	if(lcd == NULL)
@@ -569,94 +648,229 @@ LCD_ERROR LCD_Cursor_SetPos(LCD_TypeDef *lcd, uint8_t x, uint8_t y)
 	LCD_Send_CMD(lcd, cursor_adress);
 	LCD_Delay_us(50);
 
-	lcd->cursor_x = x;
-	lcd->cursor_y = y;
+	lcd->cursor.x = x;
+	lcd->cursor.y = y;
 
 	return LCD_OK;
 }
 
+/**
+ * @brief Enable Cursor (visible)
+ *
+ * @note Makes the cursor visible at the current position
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_Enable(LCD_TypeDef *lcd)
 {
-	lcd->cursor_status = LCD_CURSOR_ENABLE;
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	lcd->cmd_onOff.cursor_status = LCD_CURSOR_ENABLE;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
 }
 
+/**
+ * @brief Disable Cursor (not visible)
+ *
+ * @note Make the cursor invisible
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_Disable(LCD_TypeDef *lcd)
 {
-	lcd->cursor_status = LCD_CURSOR_DISABLE;
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	lcd->cmd_onOff.cursor_status = LCD_CURSOR_DISABLE;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
 }
 
+/**
+ * @brief Cursor blink Enable
+ *
+ * @note The cursor is enabled and blinks
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_BlinkEnable(LCD_TypeDef *lcd)
 {
-	lcd->cursor_blink_status = LCD_BLINK_CURSOR_ENABLE;
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	lcd->cmd_onOff.cursor_blink_status = LCD_BLINK_CURSOR_ENABLE;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
 }
+
+/**
+ * @brief Cursor blink Disable
+ *
+ * @note The blinks cursor is disable
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_BlinkDisable(LCD_TypeDef *lcd)
 {
-	lcd->cursor_blink_status = LCD_BLINK_CURSOR_DISABLE;
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	lcd->cmd_onOff.cursor_blink_status = LCD_BLINK_CURSOR_DISABLE;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
 }
 
+/**
+ * @brief Move the cursor to the left
+ *
+ * @note Move the cursor to the left, use this to navigate the display.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_MovetoLeft(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	cursor_y_decrement(lcd);
 
-	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor.x, lcd->cursor.y);
 }
 
+/**
+ * @brief Move the cursor to the Right
+ *
+ * @note Move the cursor to the right, use this to navigate the display.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_MovetoRight(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	cursor_y_increment(lcd);
 
-	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor.x, lcd->cursor.y);
 }
 
+/**
+ * @brief Move the cursor to the Up
+ *
+ * @note Move the cursor to the up, use this to navigate the display.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_MovetoUp(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	cursor_x_decrement(lcd);
 
-	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor.x, lcd->cursor.y);
 }
 
+/**
+ * @brief Move the cursor to the down
+ *
+ * @note Move the cursor to the down, use this to navigate the display.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Cursor_MovetoDown(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	cursor_x_increment(lcd);
 
-	return LCD_Cursor_SetPos(lcd, lcd->cursor_x, lcd->cursor_y);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor.x, lcd->cursor.y);
 }
 
 
-
+/**
+ * @brief Command Clear Display, NOT RECOMMENDED
+ *
+ * @note this fucntion clear display, but prefer LCD_Clear_Display() function
+ * @note Uses in initialization of display
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 
 LCD_ERROR LCD_CMD_DisplayClear(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	uint8_t cmd = 0x01;
 
 	LCD_Send_CMD(lcd, cmd);
 
-	HAL_Delay(3);  //recommended 1.53ms
+	HAL_Delay(3);  //recommended >= 1.53ms (datasheet)
+
+	LCD_Cursor_SetPos(lcd, 0, 0); //Just to be sure
 
 	return LCD_OK;
-
 }
 
-
+/**
+ * @brief Set Auto line break
+ *
+ * @note If enabled (default), whenever we reach the end of the line, the line break will be automatic
+ * @note If disabled, each line is viewed individually
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param auto_line_break is the LCD_AutoLineBreak type
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_SetAutoLineBreak(LCD_TypeDef *lcd, LCD_AutoLineBreak auto_line_break)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	lcd->auto_line_break = auto_line_break;
 	return LCD_OK;
 }
 
+/**
+ * @brief The display is initialized
+ *
+ * @note The display is initialized; the initialization defines the communication interface
+ *       and follows the flowchart presented in the datasheet.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param lcd_interface defines the communication interface (4-bit, 8-bit or I2C), is the LCD_INTERFACE type
+ * @param *tim receives a tim base of 1MHz for micro seconds delay
+ *
+ * @retval LCD_ERROR
+ */
 
 LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleTypeDef *tim)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(tim == NULL)
+		return LCD_ERROR_INCORRECT_PARAM;
 
 	if(lcd->size.max_columns == 0)
 		LCD_Display_SetFormat(lcd, LCD_FORMAT_16_02);
@@ -673,7 +887,7 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 
 	LCD_CMD_FunctionSet(lcd);
 	LCD_CMD_FunctionSet(lcd);
-	LCD_CMD_OnOff(lcd, LCD_DISPLAY_ON, LCD_CURSOR_DISABLE, LCD_BLINK_CURSOR_DISABLE);
+	LCD_CMD_DisplayOnOff(lcd, LCD_DISPLAY_ON, LCD_CURSOR_DISABLE, LCD_BLINK_CURSOR_DISABLE);
 	HAL_Delay(1);
 	LCD_CMD_DisplayClear(lcd);
 	LCD_Send_CMD(lcd, 0x06);  //Display Entrey default;
@@ -681,18 +895,30 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	return LCD_OK;
 }
 
+/**
+ * @brief Check if we've reached the end of the line.
+ *
+ * @note If we reach the end of the line and automatic line breaks are enabled, we will break the line.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @return LCD_ERROR
+ */
 static inline LCD_ERROR LCD_CheckEndLine(LCD_TypeDef *lcd)
 {
-	if(lcd->cursor_y >= lcd->size.max_columns)
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	if(lcd->cursor.y >= lcd->size.max_columns)
 	{
-		if(lcd->cursor_x < (lcd->size.max_lines - 1))
+		if(lcd->cursor.x < (lcd->size.max_lines - 1))
 		{
 			if(lcd->auto_line_break == LCD_AUTO_LINE_BREAK_ENABLE)
 				LCD_LineBreak(lcd);
 		}
 		else
 		{
-			lcd->cursor_y = lcd->size.max_columns;
+			lcd->cursor.y = lcd->size.max_columns;
 			return LCD_ERROR_;
 		}
 
@@ -701,8 +927,21 @@ static inline LCD_ERROR LCD_CheckEndLine(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
+/**
+ * @brief Put Char in display
+ *
+ * @note Sends a character for display in current cursor position, allows the use of some escape characters (\r, \n, \b and \t)
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param data is a unsigned char (0 - 256)
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_PutChar(LCD_TypeDef *lcd, uint8_t data)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	if(LCD_CheckEndLine(lcd) != LCD_OK)
 		return LCD_ERROR_;
 
@@ -719,15 +958,31 @@ LCD_ERROR LCD_PutChar(LCD_TypeDef *lcd, uint8_t data)
 
 	LCD_Delay_us(50);
 
-	lcd->cursor_y++;
+	lcd->cursor.y++;
 	LCD_CheckEndLine(lcd);
 
 
 	return LCD_OK;
 }
 
+
+/**
+ * @brief Print String in display
+ *
+ * @note Receive and print the string in current cursor position
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param *string  is the text we want to print on the screen.
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Print(LCD_TypeDef *lcd, const char *string)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(string == NULL)
+		return LCD_ERROR_INCORRECT_PARAM;
+
 	uint8_t i = 0;
 	while(string[i] != '\0')
 	{
@@ -739,13 +994,27 @@ LCD_ERROR LCD_Print(LCD_TypeDef *lcd, const char *string)
 	return LCD_OK;
 }
 
+/**
+ * @brief Print the formated string
+ *
+ * @note Based on the Printf function, this function is similar, taking a string and a list of parameters.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param *stringf is a formated string
+ * @param ... is a va_list of arguments
+ *
+ * @return LCD_ERROR
+ */
 LCD_ERROR LCD_PrintF(LCD_TypeDef *lcd, const char *stringf, ...)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	va_list args; //arg list (...)
 	va_start(args, stringf);
 
 	char send_string[32];
-	//sprintf(send_string, stringf, args);
+
 	vsnprintf(send_string, sizeof(send_string), stringf, args);
 	va_end(args);
 
@@ -754,18 +1023,21 @@ LCD_ERROR LCD_PrintF(LCD_TypeDef *lcd, const char *stringf, ...)
 
 LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	uint8_t previous_x = 0;
 	uint8_t previous_y = 0;
 
-	if(lcd->cursor_y > 0)
+	if(lcd->cursor.y > 0)
 	{
-		previous_x = lcd->cursor_x;
-		previous_y = lcd->cursor_y - 1;
+		previous_x = lcd->cursor.x;
+		previous_y = lcd->cursor.y - 1;
 
 	}
-	else if(lcd->cursor_x > 0)
+	else if(lcd->cursor.x > 0)
 	{
-		previous_x = (lcd->cursor_x - 1);
+		previous_x = (lcd->cursor.x - 1);
 		previous_y = (lcd->size.max_columns - 1);
 	}
 	else
@@ -781,8 +1053,11 @@ LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
 
 LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd)
 {
-	if(lcd->cursor_x < (lcd->size.max_lines - 1))
-		LCD_Cursor_SetPos(lcd, (lcd->cursor_x + 1), 0);
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	if(lcd->cursor.x < (lcd->size.max_lines - 1))
+		LCD_Cursor_SetPos(lcd, (lcd->cursor.x + 1), 0);
 	else
 		return LCD_ERROR_;
 
@@ -791,9 +1066,12 @@ LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd)
 
 LCD_ERROR LCD_Tab(LCD_TypeDef *lcd)
 {
-	uint8_t pos_y = ((uint8_t)(lcd->cursor_y / 3) + 1) * 3;
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
 
-	LCD_Cursor_SetPos(lcd, lcd->cursor_x, pos_y);
+	uint8_t pos_y = ((uint8_t)(lcd->cursor.y / 3) + 1) * 3;
+
+	LCD_Cursor_SetPos(lcd, lcd->cursor.x, pos_y);
 	//LCD_Send_String(lcd, "   ");
 
 	return LCD_OK;
@@ -804,7 +1082,7 @@ LCD_ERROR LCD_CarrigeReturn(LCD_TypeDef *lcd)
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
-	LCD_Cursor_SetPos(lcd, lcd->cursor_x, 0);
+	LCD_Cursor_SetPos(lcd, lcd->cursor.x, 0);
 }
 
 LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd)

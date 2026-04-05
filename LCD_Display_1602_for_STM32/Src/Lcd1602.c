@@ -11,8 +11,11 @@
 #include "stdarg.h"
 #include "stdio.h"
 
+#define I2C_WRITE 0x4E
+
 
 TIM_HandleTypeDef *lcd_tim;
+
 
 static inline void cursor_x_increment(LCD_TypeDef *lcd)
 {
@@ -205,32 +208,90 @@ LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pi
 	return LCD_OK;
 }
 
+LCD_ERROR LCD_I2C_SetI2CHandle(LCD_TypeDef *lcd, I2C_HandleTypeDef *i2c)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+	if(i2c == NULL)
+		return LCD_ERROR_;
 
+	lcd->i2c = i2c;
 
+	return LCD_OK;
+}
+
+/*
+static LCD_ERROR LCD_Send_Byte(LCD_TypeDef *lcd, uint8_t byte, LCD_RS rs)
+{
+
+	uint8_t cmd[3];
+	cmd[0] = I2C_WRITE;
+	cmd[1] = (rs << 6);
+	cmd[2] = byte;
+	HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, cmd, sizeof(cmd), 100);
+
+	return LCD_OK;
+}
+*/
 static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Type nibble_type, LCD_RS rs)
 {
 
-	uint8_t d7_value = (nibble >> 3) & 0x01;
-	uint8_t d6_value = (nibble >> 2) & 0x01;
-	uint8_t d5_value = (nibble >> 1) & 0x01;
-	uint8_t d4_value = nibble & 0x01;
 
-	HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
-	HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
-	LCD_Delay_us(1);
+	if(lcd->interface == LCD_INTERFACE_4BIT)
+	{
+		uint8_t d7_value = (nibble >> 3) & 0x01;
+		uint8_t d6_value = (nibble >> 2) & 0x01;
+		uint8_t d5_value = (nibble >> 1) & 0x01;
+		uint8_t d4_value = nibble & 0x01;
 
-	HAL_GPIO_WritePin(lcd->pin.db7.port, lcd->pin.db7.pin, d7_value);
-	HAL_GPIO_WritePin(lcd->pin.db6.port, lcd->pin.db6.pin, d6_value);
-	HAL_GPIO_WritePin(lcd->pin.db5.port, lcd->pin.db5.pin, d5_value);
-	HAL_GPIO_WritePin(lcd->pin.db4.port, lcd->pin.db4.pin, d4_value);
+		HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
+		HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
+		LCD_Delay_us(1);
 
-	LCD_Delay_us(1);
+		HAL_GPIO_WritePin(lcd->pin.db7.port, lcd->pin.db7.pin, d7_value);
+		HAL_GPIO_WritePin(lcd->pin.db6.port, lcd->pin.db6.pin, d6_value);
+		HAL_GPIO_WritePin(lcd->pin.db5.port, lcd->pin.db5.pin, d5_value);
+		HAL_GPIO_WritePin(lcd->pin.db4.port, lcd->pin.db4.pin, d4_value);
 
-	HAL_GPIO_WritePin(lcd->pin.E.port, lcd->pin.E.pin, 1);
+		LCD_Delay_us(1);
 
-	LCD_Delay_us(1);
+		HAL_GPIO_WritePin(lcd->pin.E.port, lcd->pin.E.pin, 1);
 
-	HAL_GPIO_WritePin(lcd->pin.E.port, lcd->pin.E.pin, 0);
+		LCD_Delay_us(1);
+
+		HAL_GPIO_WritePin(lcd->pin.E.port, lcd->pin.E.pin, 0);
+	}
+	else if(lcd->interface == LCD_INTERFACE_I2C)
+	{
+
+		uint8_t cmd_nibble = (nibble << 4);
+		cmd_nibble |= (rs << 0);
+		cmd_nibble |= (1 << 3);
+
+		//uint8_t cmd[2];
+		//cmd[0] = I2C_WRITE;
+		//cmd[1] = cmd_nibble;
+		cmd_nibble &= ~(1<<2);
+		HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
+
+		LCD_Delay_us(50);
+
+
+		cmd_nibble |= (1 << 2);
+
+		HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
+
+		LCD_Delay_us(50);
+
+		cmd_nibble &= ~(1 << 2);  //reset e bit, equals a xor
+
+		HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
+
+		LCD_Delay_us(50);
+
+	}
+
+
 
 	return LCD_OK;
 
@@ -238,24 +299,32 @@ static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Ty
 
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd)
 {
-	if(lcd->interface == LCD_INTERFACE_4BIT)
-	{
-		uint8_t high_nibble = (cmd >> 4) & 0x0F;
-		uint8_t low_nibble  = cmd & 0x0F;
-		LCD_Send_Nibble(lcd, high_nibble, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
-		LCD_Send_Nibble(lcd, low_nibble, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
-	}
+	//if(lcd->interface == LCD_INTERFACE_4BIT)
+
+	uint8_t high_nibble = (cmd >> 4) & 0x0F;
+	uint8_t low_nibble  = cmd & 0x0F;
+	LCD_Send_Nibble(lcd, high_nibble, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
+	LCD_Send_Nibble(lcd, low_nibble, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
+
 
 	return LCD_OK;
 }
 
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface)
 {
-	if(lcd_interface == LCD_INTERFACE_4BIT)
+	uint8_t command = 0x28;
+
+	/*
+	if(lcd_interface == LCD_INTERFACE_4BIT || lcd_interface == LCD_INTERFACE_I2C)
 	{
-		uint8_t command = 0x28;
-		LCD_Send_CMD(lcd, command);
+		command = 0x28;
 	}
+	else
+	{
+		command = 0x38;
+	}*/
+
+	LCD_Send_CMD(lcd, command);
 
 	LCD_Delay_us(100);
 	return LCD_OK;
@@ -443,13 +512,16 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	if(lcd->size.max_columns == 0)
 		LCD_Display_SetFormat(lcd, LCD_FORMAT_16_02);
 
+	lcd->interface = lcd_interface;
+
 	LCD_SetAutoLineBreak(lcd, LCD_AUTO_LINE_BREAK_ENABLE);
 	lcd_tim = tim;
 
 	HAL_Delay(40);
 
 	LCD_Send_Nibble(lcd, 0x03, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
-	HAL_Delay(1);
+	HAL_Delay(5);
+
 	LCD_CMD_FunctionSet(lcd, lcd_interface);
 	LCD_CMD_FunctionSet(lcd, lcd_interface);
 	LCD_CMD_OnOff(lcd, LCD_DISPLAY_ON, LCD_CURSOR_DISABLE, LCD_BLINK_CURSOR_DISABLE);
@@ -488,7 +560,7 @@ LCD_ERROR LCD_PutChar(LCD_TypeDef *lcd, uint8_t data)
 	if(LCD_Check_EscapeSequence(lcd, data))
 		return LCD_OK;
 
-	if(lcd->interface == LCD_INTERFACE_4BIT)
+	if(lcd->interface == LCD_INTERFACE_4BIT || LCD_INTERFACE_I2C)
 	{
 		uint8_t high_nibble = (data >> 4) & 0x0F;
 		uint8_t low_nibble  = data & 0x0F;

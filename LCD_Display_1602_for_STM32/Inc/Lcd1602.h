@@ -94,6 +94,7 @@ typedef struct
 {
 	LCD_Pins pin;
 	LCD_INTERFACE interface;
+	I2C_HandleTypeDef *i2c;
 	LCD_DisplayStatus display_status;
 	LCD_CursorStatus cursor_status;
 	LCD_CursorBlinkStatus cursor_blink_status;
@@ -145,6 +146,7 @@ LCD_ERROR LCD_GPIO_SetDB7(LCD_TypeDef *lcd, GPIO_TypeDef *db7_port, uint16_t db7
 LCD_ERROR LCD_GPIO_SetRS(LCD_TypeDef *lcd, GPIO_TypeDef *rs_port, uint16_t rs_pin);
 LCD_ERROR LCD_GPIO_SetEnable(LCD_TypeDef *lcd, GPIO_TypeDef *enable_port, uint16_t enable_pin);
 LCD_ERROR LCD_GPIO_SetRW(LCD_TypeDef *lcd, GPIO_TypeDef *rw_port, uint16_t rw_pin);
+LCD_ERROR LCD_I2C_SetI2CHandle(LCD_TypeDef *lcd, I2C_HandleTypeDef *i2c);
 
 LCD_ERROR LCD_Send_CMD(LCD_TypeDef *lcd, uint8_t cmd);
 LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface);

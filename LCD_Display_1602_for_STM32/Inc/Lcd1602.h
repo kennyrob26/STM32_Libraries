@@ -102,8 +102,15 @@ typedef struct
 	uint8_t y;
 }LCD_CursorPos;
 
+typedef enum
+{
+	LCD_INIT_NO_INITIALIZED = 0,
+	LCD_INIT_INITIALIZED    = 1
+}LCD_InitStatus;
+
 typedef struct
 {
+	LCD_InitStatus status;
 	LCD_Pins pin;
 	LCD_INTERFACE interface;
 	I2C_HandleTypeDef *i2c;
@@ -121,7 +128,8 @@ typedef enum{
 	LCD_ERROR_INCORRECT_PARAM        = 3,
 	LCD_ERROR_TIMEOUT            	 = 4,
 	LCD_ERROR_GPIO_NOT_DEFINED       = 5,
-	LCD_ERROR_					 	 = 6
+	LCD_ERROR_NO_INITIALIZED         = 6,
+	LCD_ERROR_					 	 = 7
 }LCD_ERROR;
 
 typedef enum{

@@ -49,6 +49,53 @@ static inline void cursor_y_decrement(LCD_TypeDef *lcd)
 		lcd->cursor.y = 0;
 }
 
+static inline LCD_ERROR LCD_CheckGPIOConfig(LCD_TypeDef *lcd)
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
+	switch (lcd->interface)
+	{
+		case LCD_INTERFACE_4BIT:
+			if(
+				   (lcd->pin.E.port   == NULL) ||
+				   (lcd->pin.RS.port  == NULL) ||
+				   (lcd->pin.db7.port == NULL) ||
+				   (lcd->pin.db6.port == NULL) ||
+				   (lcd->pin.db5.port == NULL) ||
+				   (lcd->pin.db4.port == NULL)
+			) return LCD_ERROR_GPIO_NOT_DEFINED;
+			break;
+
+		case LCD_INTERFACE_8BIT:
+			if(
+				   (lcd->pin.E.port   == NULL) ||
+				   (lcd->pin.RS.port  == NULL) ||
+				   (lcd->pin.db7.port == NULL) ||
+				   (lcd->pin.db6.port == NULL) ||
+				   (lcd->pin.db5.port == NULL) ||
+				   (lcd->pin.db4.port == NULL) ||
+				   (lcd->pin.db3.port == NULL) ||
+				   (lcd->pin.db2.port == NULL) ||
+				   (lcd->pin.db1.port == NULL) ||
+				   (lcd->pin.db0.port == NULL)
+
+			) return LCD_ERROR_GPIO_NOT_DEFINED;
+			break;
+
+		case LCD_INTERFACE_I2C:
+			if(lcd->i2c == NULL)
+				return LCD_ERROR_I2C_HANDLE_NOT_DEFINED;
+
+			if(HAL_I2C_IsDeviceReady(lcd->i2c, I2C_WRITE, 10, 100) != HAL_OK)
+				return LCD_ERROR_I2C_HANDLE_NOT_DEFINED;
+
+			break;
+		default:
+			return LCD_OK;
+			break;
+	}
+}
 
 /**
  * @brief Delay in micro seconds
@@ -383,65 +430,70 @@ static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Ty
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
-
-	if(lcd->interface == LCD_INTERFACE_4BIT)
+	switch (lcd->interface)
 	{
-		if(
-			   (lcd->pin.E.port   == NULL) ||
-			   (lcd->pin.RS.port  == NULL) ||
-			   (lcd->pin.db7.port == NULL) ||
-			   (lcd->pin.db6.port == NULL) ||
-			   (lcd->pin.db5.port == NULL) ||
-			   (lcd->pin.db4.port == NULL)
-	    )
-		{
-			return LCD_ERROR_GPIO_NOT_DEFINED;
-		}
+		case LCD_INTERFACE_4BIT:
+			/**
+			if(
+				   (lcd->pin.E.port   == NULL) ||
+				   (lcd->pin.RS.port  == NULL) ||
+				   (lcd->pin.db7.port == NULL) ||
+				   (lcd->pin.db6.port == NULL) ||
+				   (lcd->pin.db5.port == NULL) ||
+				   (lcd->pin.db4.port == NULL)
+			)
+			{
+				return LCD_ERROR_GPIO_NOT_DEFINED;
+			}
+			*/
+			uint8_t d7_value = (nibble >> 3) & 0x01;
+			uint8_t d6_value = (nibble >> 2) & 0x01;
+			uint8_t d5_value = (nibble >> 1) & 0x01;
+			uint8_t d4_value = nibble & 0x01;
 
-		uint8_t d7_value = (nibble >> 3) & 0x01;
-		uint8_t d6_value = (nibble >> 2) & 0x01;
-		uint8_t d5_value = (nibble >> 1) & 0x01;
-		uint8_t d4_value = nibble & 0x01;
+			if(lcd->pin.RW.port != NULL)
+				HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
+			HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
+			LCD_Delay_us(1);
 
-		if(lcd->pin.RW.port != NULL)
-			HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
-		HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
-		LCD_Delay_us(1);
+			HAL_GPIO_WritePin(lcd->pin.db7.port, lcd->pin.db7.pin, d7_value);
+			HAL_GPIO_WritePin(lcd->pin.db6.port, lcd->pin.db6.pin, d6_value);
+			HAL_GPIO_WritePin(lcd->pin.db5.port, lcd->pin.db5.pin, d5_value);
+			HAL_GPIO_WritePin(lcd->pin.db4.port, lcd->pin.db4.pin, d4_value);
 
-		HAL_GPIO_WritePin(lcd->pin.db7.port, lcd->pin.db7.pin, d7_value);
-		HAL_GPIO_WritePin(lcd->pin.db6.port, lcd->pin.db6.pin, d6_value);
-		HAL_GPIO_WritePin(lcd->pin.db5.port, lcd->pin.db5.pin, d5_value);
-		HAL_GPIO_WritePin(lcd->pin.db4.port, lcd->pin.db4.pin, d4_value);
+			LCD_PinEnablePulse(lcd);
+		break;
 
-		LCD_PinEnablePulse(lcd);
+		case LCD_INTERFACE_I2C:
+			/*
+			if(lcd->i2c == NULL)
+				return LCD_ERROR_I2C_HANDLE_NOT_DEFINED;
+			*/
 
-	}
-	else if(lcd->interface == LCD_INTERFACE_I2C)
-	{
-		if(lcd->i2c == NULL)
-			return LCD_ERROR_I2C_HANDLE_NOT_DEFINED;
+			uint8_t cmd_nibble = (nibble << 4);
+			cmd_nibble |= (rs << 0);
+			cmd_nibble |= (1 << 3);
 
-		uint8_t cmd_nibble = (nibble << 4);
-		cmd_nibble |= (rs << 0);
-		cmd_nibble |= (1 << 3);
+			cmd_nibble &= ~(1<<2);
+			HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
 
-		cmd_nibble &= ~(1<<2);
-		HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
+			LCD_Delay_us(50);
 
-		LCD_Delay_us(50);
+			cmd_nibble |= (1 << 2);
 
-		cmd_nibble |= (1 << 2);
+			HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
 
-		HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
+			LCD_Delay_us(50);
 
-		LCD_Delay_us(50);
+			cmd_nibble &= ~(1 << 2);  //reset e bit, equals a xor
 
-		cmd_nibble &= ~(1 << 2);  //reset e bit, equals a xor
+			HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
 
-		HAL_I2C_Master_Transmit(lcd->i2c, I2C_WRITE, &cmd_nibble, 1, 100);
-
-		LCD_Delay_us(50);
-
+			LCD_Delay_us(50);
+		break;
+		default:
+			return LCD_ERROR_;
+			break;
 	}
 
 	return LCD_OK;
@@ -461,7 +513,7 @@ static LCD_ERROR LCD_Send_Byte(LCD_TypeDef *lcd, uint8_t byte, LCD_RS rs)
 			LCD_Send_Nibble(lcd, low_nibble,  LCD_LOW_NIBBLE,  rs);
 		break;
 		case LCD_INTERFACE_8BIT:
-
+			/*
 			if(
 				   (lcd->pin.E.port   == NULL) ||
 				   (lcd->pin.RS.port  == NULL) ||
@@ -477,7 +529,7 @@ static LCD_ERROR LCD_Send_Byte(LCD_TypeDef *lcd, uint8_t byte, LCD_RS rs)
 			{
 				return LCD_ERROR_GPIO_NOT_DEFINED;
 			}
-
+		*/
 			if(lcd->pin.RW.port != NULL)
 				HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
 			HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
@@ -541,20 +593,26 @@ LCD_ERROR LCD_CMD_FunctionSet(LCD_TypeDef *lcd)
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
-	uint8_t command = 0x28;
+	uint8_t command;
 
-	if(lcd->interface == LCD_INTERFACE_4BIT || lcd->interface == LCD_INTERFACE_I2C)
+	switch (lcd->interface)
 	{
-		command = 0x28;
-	}
-	else
-	{
-		command = 0x38;
+		case LCD_INTERFACE_4BIT:
+		case LCD_INTERFACE_I2C:
+			command = 0x28;
+		break;
+		case LCD_INTERFACE_8BIT:
+			command = 0x38;
+		break;
+		default:
+			return LCD_ERROR_INCORRECT_PARAM;
+			break;
 	}
 
 	LCD_ERROR lcd_error = LCD_Send_CMD(lcd, command);
 
 	LCD_Delay_us(100);
+
 	return lcd_error;
 }
 
@@ -682,6 +740,9 @@ LCD_ERROR LCD_Display_SetFormat(LCD_TypeDef *lcd, LCD_DisplayFormat format)
  */
 LCD_ERROR LCD_Display_Enable(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	lcd->cmd_onOff.display_status = LCD_DISPLAY_ON;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
@@ -698,6 +759,9 @@ LCD_ERROR LCD_Display_Enable(LCD_TypeDef *lcd)
  */
 LCD_ERROR LCD_Display_Disable(LCD_TypeDef *lcd)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
+
 	lcd->cmd_onOff.display_status = LCD_DISPLAY_OFF;
 	LCD_UpdateOnOff(lcd);
 	return LCD_OK;
@@ -959,10 +1023,14 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	if(tim == NULL)
 		return LCD_ERROR_INCORRECT_PARAM;
 
+	lcd->interface = lcd_interface;
+
+	LCD_ERROR gpioStatus = LCD_CheckGPIOConfig(lcd);
+	if(gpioStatus != LCD_OK)
+		return gpioStatus;
+
 	if(lcd->size.max_columns == 0)
 		LCD_Display_SetFormat(lcd, LCD_FORMAT_16_02);
-
-	lcd->interface = lcd_interface;
 
 	LCD_SetAutoLineBreak(lcd, LCD_AUTO_LINE_BREAK_ENABLE);
 	lcd_tim = tim;
@@ -988,6 +1056,8 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 	HAL_Delay(1);
 	LCD_CMD_DisplayClear(lcd);
 	LCD_Send_CMD(lcd, 0x06);  //Display Entrey default;
+
+	lcd->status = LCD_INIT_INITIALIZED;
 
 	return LCD_OK;
 }

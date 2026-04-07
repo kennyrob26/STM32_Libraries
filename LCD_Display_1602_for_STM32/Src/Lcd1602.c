@@ -412,6 +412,18 @@ static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Ty
 
 }
 
+static LCD_ERROR LCD_Send_Byte(LCD_TypeDef *lcd, uint8_t byte, LCD_RS rs)
+{
+    uint8_t high_nibble = (byte >> 4) & 0x0F;
+    uint8_t low_nibble  = byte & 0x0F;
+
+    LCD_Send_Nibble(lcd, high_nibble, LCD_HIGH_NIBBLE, rs);
+    LCD_Send_Nibble(lcd, low_nibble,  LCD_LOW_NIBBLE,  rs);
+
+    return LCD_OK;
+}
+
+
 /**
  * @brief Send a CMD LCD
  *
@@ -884,6 +896,13 @@ LCD_ERROR LCD_Init(LCD_TypeDef *lcd, LCD_INTERFACE lcd_interface, TIM_HandleType
 
 	LCD_Send_Nibble(lcd, 0x03, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
 	HAL_Delay(5);
+	LCD_Send_Nibble(lcd, 0x03, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
+	HAL_Delay(1);
+	LCD_Send_Nibble(lcd, 0x03, LCD_HIGH_NIBBLE, LCD_RS_CONTROL);
+	HAL_Delay(1);
+
+	LCD_Send_Nibble(lcd, 0x02, LCD_HIGH_NIBBLE, LCD_RS_CONTROL); //force 4 bits
+	HAL_Delay(1);
 
 	LCD_CMD_FunctionSet(lcd);
 	LCD_CMD_FunctionSet(lcd);
@@ -1003,7 +1022,7 @@ LCD_ERROR LCD_Print(LCD_TypeDef *lcd, const char *string)
  * @param *stringf is a formated string
  * @param ... is a va_list of arguments
  *
- * @return LCD_ERROR
+ * @retval LCD_ERROR
  */
 LCD_ERROR LCD_PrintF(LCD_TypeDef *lcd, const char *stringf, ...)
 {
@@ -1021,6 +1040,16 @@ LCD_ERROR LCD_PrintF(LCD_TypeDef *lcd, const char *stringf, ...)
 	return LCD_Print(lcd, send_string);
 }
 
+/**
+ * @brief Backspace \b
+ *
+ * @note Go back to the previous character and clear
+ * @note used as escape character \b
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
@@ -1051,6 +1080,16 @@ LCD_ERROR LCD_Backspace(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
+/**
+ * @brief Line Break \n
+ *
+ * @note If there are more lines, a line break will be applied; otherwise, it is simply ignored.
+ * @note used as escape character \n
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
@@ -1064,6 +1103,17 @@ LCD_ERROR LCD_LineBreak(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
+/**
+ * @brief Tab  \t
+ *
+ * @note Divide the line into sections of 3 characters, and with each "tab" organize the data into
+ * 	     the next section. This ensures alignment between lines (tables).
+ * @note used as escape character \t
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Tab(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
@@ -1077,14 +1127,33 @@ LCD_ERROR LCD_Tab(LCD_TypeDef *lcd)
 	return LCD_OK;
 }
 
+/**
+ * @brief Carrige return \r
+ *
+ * @note Return to the beginning of the current line. (x=x_current, y = 0)
+ * @note used as escape character \r
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_CarrigeReturn(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
-	LCD_Cursor_SetPos(lcd, lcd->cursor.x, 0);
+	return LCD_Cursor_SetPos(lcd, lcd->cursor.x, 0);
 }
 
+/**
+ * @brief Clear current char
+ *
+ * @note clears the char at the current cursor position
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
@@ -1093,6 +1162,17 @@ LCD_ERROR LCD_Clear_Char(LCD_TypeDef *lcd)
 	return LCD_PutChar(lcd, ' ');
 }
 
+/**
+ * @brief Clear current line
+ *
+ * @note clear the indicated line
+ * @note After clearing, the cursor is positioned at the beginning of the line.
+ *
+ * @param *lcd is a pointer for Lcd Handle
+ * @param line is the target line
+ *
+ * @retval LCD_ERROR
+ */
 LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line)
 {
 	if(lcd == NULL)
@@ -1112,6 +1192,11 @@ LCD_ERROR LCD_Clear_Line(LCD_TypeDef *lcd, uint8_t line)
 	return LCD_OK;
 }
 
+/**
+ * @brief Clear All display
+ *
+ * @note Clear all display and the cursor is positioned in line and column 0 (0,0)
+ */
 LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd)
 {
 	if(lcd == NULL)
@@ -1130,6 +1215,8 @@ LCD_ERROR LCD_Clear_Display(LCD_TypeDef *lcd)
 
 LCD_ERROR LCD_Area_CreateNew(LCD_TypeDef *lcd, LCD_Area *area)
 {
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
 	if(area == NULL)
 		return LCD_ERROR_;
 
@@ -1203,7 +1290,30 @@ LCD_ERROR LCD_Area_Update(LCD_Area *area, uint8_t string[])
 	return LCD_OK;
 }
 
+LCD_ERROR LCD_CreateChar(LCD_TypeDef *lcd, uint8_t pos, uint8_t charactere[8])
+{
+	if(lcd == NULL)
+		return LCD_ERROR_HADLE_NOT_DEFINED;
 
+	if(pos > 7)
+		return LCD_ERROR_INCORRECT_PARAM;
+
+	uint8_t cgram_pos_0 = 0x40;
+	uint8_t cgram_pos   = cgram_pos_0 | (pos << 3); //pos << 3 == pos * 8
+
+	LCD_Send_CMD(lcd, cgram_pos);
+
+	LCD_Delay_us(50);
+
+	for(uint8_t line = 0; line < 8; line++)
+	{
+		LCD_Send_Byte(lcd, charactere[line], LCD_RS_DATA);
+	}
+
+	LCD_Delay_us(50);
+	LCD_Cursor_SetPos(lcd, lcd->cursor.x, lcd->cursor.y);
+	return LCD_OK;
+}
 
 
 

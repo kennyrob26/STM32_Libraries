@@ -383,14 +383,28 @@ static LCD_ERROR LCD_Send_Nibble(LCD_TypeDef *lcd, uint8_t nibble, LCD_Nibble_Ty
 	if(lcd == NULL)
 		return LCD_ERROR_HADLE_NOT_DEFINED;
 
+
 	if(lcd->interface == LCD_INTERFACE_4BIT)
 	{
+		if(
+			   (lcd->pin.E.port   == NULL) ||
+			   (lcd->pin.RS.port  == NULL) ||
+			   (lcd->pin.db7.port == NULL) ||
+			   (lcd->pin.db6.port == NULL) ||
+			   (lcd->pin.db5.port == NULL) ||
+			   (lcd->pin.db4.port == NULL)
+	    )
+		{
+			return LCD_ERROR_GPIO_NOT_DEFINED;
+		}
+
 		uint8_t d7_value = (nibble >> 3) & 0x01;
 		uint8_t d6_value = (nibble >> 2) & 0x01;
 		uint8_t d5_value = (nibble >> 1) & 0x01;
 		uint8_t d4_value = nibble & 0x01;
 
-		HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
+		if(lcd->pin.RW.port != NULL)
+			HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
 		HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
 		LCD_Delay_us(1);
 
@@ -447,7 +461,25 @@ static LCD_ERROR LCD_Send_Byte(LCD_TypeDef *lcd, uint8_t byte, LCD_RS rs)
 			LCD_Send_Nibble(lcd, low_nibble,  LCD_LOW_NIBBLE,  rs);
 		break;
 		case LCD_INTERFACE_8BIT:
-			HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
+
+			if(
+				   (lcd->pin.E.port   == NULL) ||
+				   (lcd->pin.RS.port  == NULL) ||
+				   (lcd->pin.db7.port == NULL) ||
+				   (lcd->pin.db6.port == NULL) ||
+				   (lcd->pin.db5.port == NULL) ||
+				   (lcd->pin.db4.port == NULL) ||
+				   (lcd->pin.db3.port == NULL) ||
+				   (lcd->pin.db2.port == NULL) ||
+				   (lcd->pin.db1.port == NULL) ||
+				   (lcd->pin.db0.port == NULL)
+		    )
+			{
+				return LCD_ERROR_GPIO_NOT_DEFINED;
+			}
+
+			if(lcd->pin.RW.port != NULL)
+				HAL_GPIO_WritePin(lcd->pin.RW.port, lcd->pin.RW.pin, 0);
 			HAL_GPIO_WritePin(lcd->pin.RS.port, lcd->pin.RS.pin, rs);
 			LCD_Delay_us(1);
 
@@ -1013,14 +1045,7 @@ LCD_ERROR LCD_PutChar(LCD_TypeDef *lcd, uint8_t data)
 	if(LCD_Check_EscapeSequence(lcd, data))
 		return LCD_OK;
 
-	if(lcd->interface == LCD_INTERFACE_4BIT || LCD_INTERFACE_I2C)
-	{
-		uint8_t high_nibble = (data >> 4) & 0x0F;
-		uint8_t low_nibble  = data & 0x0F;
-		LCD_Send_Nibble(lcd, high_nibble, LCD_HIGH_NIBBLE, LCD_RS_DATA);
-		LCD_Send_Nibble(lcd, low_nibble, LCD_LOW_NIBBLE, LCD_RS_DATA);
-	}
-
+	LCD_Send_Byte(lcd, data, LCD_RS_DATA);
 	LCD_Delay_us(50);
 
 	lcd->cursor.y++;

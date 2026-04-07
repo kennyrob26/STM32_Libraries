@@ -111,8 +111,6 @@ typedef struct
 	LCD_DisplaySize size;
 	TIM_HandleTypeDef *tim;
 	LCD_CursorPos cursor;
-	//uint8_t cursor_x;
-	//uint8_t cursor_y;
 	LCD_AutoLineBreak auto_line_break;
 }LCD_TypeDef;
 
@@ -122,7 +120,8 @@ typedef enum{
 	LCD_ERROR_I2C_HANDLE_NOT_DEFINED = 2,
 	LCD_ERROR_INCORRECT_PARAM        = 3,
 	LCD_ERROR_TIMEOUT            	 = 4,
-	LCD_ERROR_					 	 = 5
+	LCD_ERROR_GPIO_NOT_DEFINED       = 5,
+	LCD_ERROR_					 	 = 6
 }LCD_ERROR;
 
 typedef enum{

@@ -1,7 +1,7 @@
 /*
  * modbus.h
  *
- *  Created on: Nov 7, 2026
+ *  Created on: Nov 2, 2026
  *      Author: kenny
  */
 
@@ -60,7 +60,6 @@ typedef struct
 	uint16_t quantity;
 	uint8_t byte_count;
 	MB_data_t data;
-	//uint8_t crc[2];
 	uint16_t crc;
 }MB_packet_t;
 
@@ -77,14 +76,15 @@ typedef struct
 	uint16_t gpio_pin;
 
 	MB_Table_t table;
+	MB_Buffer_t buffer_rx;
+
+	uint16_t packet_size;
 }MB_handler_t;
 
 
 uint16_t CRC16_calc(uint8_t *buffer, uint8_t buffer_size);
 void ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
 
-//static inline uint16_t calc_quantity(uint8_t *data_payload);
-
-void ModBus_MountReceivedPacket(MB_handler_t *handler, MB_packet_raw_t *packet_raw, MB_packet_t *packet_info,  uint8_t size, MB_Buffer_t *buffer_rx);
+void ModBus_MountReceivedPacket(MB_handler_t *handler, MB_packet_t *packet_info/*,  uint8_t size, MB_Buffer_t *buffer_rx*/);
 
 #endif /* MODBUS_MODBUS_H_ */

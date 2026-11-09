@@ -38,19 +38,20 @@ typedef struct
 	uint8_t start_addres[2];
 }MB_head_t;
 
-
+/*
 typedef struct __attribute__((packed))
 {
 	MB_head_t head;
 	uint8_t payload[100];
 }MB_packet_raw_t;
-
+*/
+/*
 typedef union
 {
 	uint8_t coil[20];
 	uint16_t reg[10];
 }MB_data_t;
-
+*/
 typedef struct
 {
 	uint8_t packet_size;
@@ -59,15 +60,17 @@ typedef struct
 	uint16_t start_address;
 	uint16_t quantity;
 	uint8_t byte_count;
-	MB_data_t data;
+	//MB_data_t data;
 	uint16_t crc;
 }MB_packet_t;
 
+/*
 typedef union
 {
 	MB_packet_raw_t packet;
 	uint8_t raw[sizeof(MB_packet_raw_t)];
 }MB_Buffer_t;
+*/
 
 typedef struct
 {
@@ -75,8 +78,10 @@ typedef struct
 	GPIO_TypeDef* gpio_port;
 	uint16_t gpio_pin;
 
+	MB_packet_t packet_info;
 	MB_Table_t table;
-	MB_Buffer_t buffer_rx;
+	//MB_Buffer_t buffer_rx;
+	uint8_t buffer_rx[50];
 
 	uint16_t packet_size;
 }MB_handler_t;
@@ -85,6 +90,6 @@ typedef struct
 uint16_t CRC16_calc(uint8_t *buffer, uint8_t buffer_size);
 void ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
 
-void ModBus_MountReceivedPacket(MB_handler_t *handler, MB_packet_t *packet_info/*,  uint8_t size, MB_Buffer_t *buffer_rx*/);
+void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_info*//*,  uint8_t size, MB_Buffer_t *buffer_rx*/);
 
 #endif /* MODBUS_MODBUS_H_ */

@@ -53,6 +53,10 @@ void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 {
 	switch (handler->packet_info.function_code)
 	{
+		case FC01:
+			ModBus_Transmit(handler, handler->buffer_tx, handler->response_size);
+		break;
+
 		case FC05:												//Response ID+FC+Address+Data+CRC
 		case FC06:
 			ModBus_Transmit(handler, handler->buffer_rx, handler->packet_size);
@@ -87,102 +91,158 @@ static inline uint16_t calc_quantity(uint8_t *data_payload)
 	return quantity;
 }
 
-void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_info*/)
+void ModBus_FillPacketInfo(MB_handler_t *handler)
 {
 	handler->packet_info.slave_id = handler->buffer_rx[0];
 	handler->packet_info.function_code = handler->buffer_rx[1];
 	handler->packet_info.start_address = (uint16_t)(handler->buffer_rx[2] << 8);
 	handler->packet_info.start_address |= handler->buffer_rx[3];
 
+	handler->packet_info.quantity = 0;
+	handler->packet_info.byte_count = 0;
 
 	handler->packet_info.crc = handler->buffer_rx[handler->packet_size-2];
 	handler->packet_info.crc |= ((uint16_t)(handler->buffer_rx[handler->packet_size-1] << 8) & 0xFF00);
+}
 
+uint8_t ModBus_ValidadeCRC(MB_handler_t *handler)
+{
 	uint16_t crc16 = CRC16_calc(handler->buffer_rx, (handler->packet_size-2));
-
-	crc = crc16;
 
 	if(handler->packet_info.crc == crc16)
 	{
-
+		return 1;
 	}
+	else
+	{
+		return 0;
+	}
+}
+
+void ModBus_ReadTable(MB_handler_t *handler)
+{
+	handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
+
+	const uint8_t head_bytes = 3; // ID+FC+Count
+	uint8_t byte_count = (uint8_t)((handler->packet_info.quantity + 7) / 8);
+	uint8_t response_size = head_bytes + byte_count;
 
 	switch (handler->packet_info.function_code)
 	{
 		case FC01:
-		case FC02:
-		case FC03:
-		case FC04:
-			handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
-		break;
+			handler->buffer_tx[0] = handler->packet_info.slave_id;
+			handler->buffer_tx[1] = handler->packet_info.function_code;
+			handler->buffer_tx[2] = byte_count;
 
-		case FC05:
-			handler->packet_info.quantity = 0;
-			handler->packet_info.byte_count = 0;
-
-			if(handler->packet_info.start_address < sizeof(handler->table.coils))
-				handler->table.coils[handler->packet_info.start_address] = handler->buffer_rx[4];
-
-			//ModBus_Transmit(handler, handler->buffer_rx, handler->packet_size);
-
-		break;
-		case FC06:
-			handler->packet_info.quantity = 0;
-			handler->packet_info.byte_count = 0;
-
-			handler->table.registers[handler->packet_info.start_address] = (handler->buffer_rx[4] << 8);
-			handler->table.registers[handler->packet_info.start_address] |= handler->buffer_rx[5];
-
-			//ModBus_Transmit(handler, handler->buffer_rx, handler->packet_size);
-
-		break;
-		case FC15:
-			handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
-			handler->packet_info.byte_count = handler->buffer_rx[6];
-
-			uint8_t mask;
-
-			for(uint8_t j=0; j<handler->packet_info.byte_count; j++)
+			for(uint8_t i=0; i<byte_count; i++)
 			{
-				for(uint8_t i=0; i<8; i++)
-				{
-					mask = (1<<i);
+				uint8_t index = i+3;
 
-					handler->table.coils[i +(j*8)]  = ((handler->buffer_rx[j+7] & mask) > 0);
+				handler->buffer_tx[index] = 0;
+
+				for(uint8_t j=0; j<8; j++)
+				{
+
+					handler->buffer_tx[index] |= (handler->table.coils[j] << j);
 				}
 			}
 
-			//ModBus_Transmit(handler, handler->buffer_rx, handler->packet_size);
+			uint16_t crc16 = CRC16_calc(handler->buffer_tx, response_size);
 
-			break;
+			handler->buffer_tx[response_size] = (uint8_t)(crc16 & 0x00FF);
+			handler->buffer_tx[response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
 
-		case FC16:
-			handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
-			handler->packet_info.byte_count = handler->buffer_rx[6];
+			handler->response_size = response_size + 2;
 
-			for(uint8_t i=0; i<handler->packet_info.quantity; i++)
-			{
-				uint8_t high_byte_index = (i * 2) + 3;
-				uint8_t low_byte_index  = high_byte_index + 1;
+		break;
+		case FC02:
 
-				handler->table.registers[handler->packet_info.start_address + i]  = ((handler->buffer_rx[high_byte_index + 4]) << 8);
-				handler->table.registers[handler->packet_info.start_address + i]  |= (handler->buffer_rx[low_byte_index + 4]);
-			}
-			uint8_t buffer_tx[8];
-			memcpy(buffer_tx, handler->buffer_rx, 6);
+		break;
+		case FC03:
 
-			crc16 = CRC16_calc(buffer_tx, 6);
+		break;
+		case FC04:
 
-			buffer_tx[6] = (uint8_t)(crc16 & 0x00FF);
-			buffer_tx[7] = (uint8_t)((crc16 >> 8) & 0x00FF);
-
-			//ModBus_Transmit(handler, buffer_tx, 8);
 		break;
 		default:
 			break;
 	}
+}
 
-	ModBus_ResponseToMaster(handler, 1);
+void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_info*/)
+{
+
+	ModBus_FillPacketInfo(handler);
+
+	if(ModBus_ValidadeCRC(handler) == 1)
+	{
+		switch (handler->packet_info.function_code)
+		{
+			case FC01:
+			case FC02:
+			case FC03:
+			case FC04:
+				//handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
+				ModBus_ReadTable(handler);
+			break;
+
+			case FC05:
+				if(handler->packet_info.start_address < sizeof(handler->table.coils))
+					handler->table.coils[handler->packet_info.start_address] = handler->buffer_rx[4];
+
+			break;
+			case FC06:
+				if(handler->packet_info.start_address < sizeof(handler->table.registers))
+				{
+					handler->table.registers[handler->packet_info.start_address] = (handler->buffer_rx[4] << 8);
+					handler->table.registers[handler->packet_info.start_address] |= handler->buffer_rx[5];
+				}
+
+			break;
+			case FC15:
+				handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
+				handler->packet_info.byte_count = handler->buffer_rx[6];
+
+				uint8_t mask;
+
+				for(uint16_t j=0; j<handler->packet_info.byte_count; j++)
+				{
+					uint16_t index = handler->packet_info.start_address + (j * 8);
+
+					for(uint16_t i=0; i<8; i++)
+					{
+						mask = (1<<i);
+
+						if((index+i) < handler->packet_info.quantity)
+							handler->table.coils[index + i]  = ((handler->buffer_rx[j+7] & mask) > 0);
+						else
+							break;
+					}
+				}
+
+				break;
+
+			case FC16:
+				handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
+				handler->packet_info.byte_count = handler->buffer_rx[6];
+
+				for(uint8_t i=0; i<handler->packet_info.quantity; i++)
+				{
+					uint8_t high_byte_index = (i * 2) + 3;
+					uint8_t low_byte_index  = high_byte_index + 1;
+
+					handler->table.registers[handler->packet_info.start_address + i]  = ((handler->buffer_rx[high_byte_index + 4]) << 8);
+					handler->table.registers[handler->packet_info.start_address + i]  |= (handler->buffer_rx[low_byte_index + 4]);
+				}
+
+			break;
+			default:
+				break;
+		}
+
+		ModBus_ResponseToMaster(handler, 1);
+
+	}
 }
 
 

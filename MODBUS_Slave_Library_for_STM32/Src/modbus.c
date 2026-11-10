@@ -13,6 +13,8 @@
 
 uint16_t crc;
 
+HAL_StatusTypeDef error;
+
 
 uint16_t  CRC16_calc(uint8_t *buffer, uint8_t buffer_size)
 {
@@ -44,9 +46,11 @@ uint16_t  CRC16_calc(uint8_t *buffer, uint8_t buffer_size)
 void ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size)
 {
 	HAL_GPIO_WritePin(handler->gpio_port, handler->gpio_pin, 1);
-	HAL_UART_Transmit(handler->huart, buffer, size, 100);
-	//HAL_Delay(20);
+	error = HAL_UART_Transmit(handler->huart, buffer, size, 100);
+	while (__HAL_UART_GET_FLAG(handler->huart, UART_FLAG_TC) == RESET);
 	HAL_GPIO_WritePin(handler->gpio_port, handler->gpio_pin, 0);
+
+
 }
 
 void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
@@ -54,7 +58,9 @@ void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 	switch (handler->packet_info.function_code)
 	{
 		case FC01:
+		case FC02:
 		case FC03:
+		case FC04:
 			ModBus_Transmit(handler, handler->buffer_tx, handler->response_size);
 		break;
 
@@ -134,6 +140,7 @@ void ModBus_ReadTable(MB_handler_t *handler)
 	switch (handler->packet_info.function_code)
 	{
 		case FC01:
+		case FC02:
 
 			byte_count = (uint8_t)((handler->packet_info.quantity + 7) / 8);
 			response_size = head_bytes + byte_count;
@@ -153,7 +160,11 @@ void ModBus_ReadTable(MB_handler_t *handler)
 
 				for(uint8_t j=0; j<8; j++)
 				{
-					current_address = handler->table.coils[j + (i*8) + handler->packet_info.start_address];
+					if(handler->packet_info.function_code == FC01)
+						current_address = handler->table.coils[j + (i*8) + handler->packet_info.start_address];
+					else if(handler->packet_info.function_code == FC02)
+						current_address = handler->table.discrete_inputs[j + (i*8) + handler->packet_info.start_address];
+
 					handler->buffer_tx[current_byte] |= (current_address << j);
 				}
 			}
@@ -166,10 +177,9 @@ void ModBus_ReadTable(MB_handler_t *handler)
 			handler->response_size = response_size + 2;
 
 		break;
-		case FC02:
 
-		break;
 		case FC03:
+		case FC04:
 			byte_count = (handler->packet_info.quantity * 2);
 			response_size = head_bytes + byte_count;
 
@@ -183,8 +193,17 @@ void ModBus_ReadTable(MB_handler_t *handler)
 			for(uint8_t i=0; i<handler->packet_info.quantity; i++)
 			{
 				current_byte = (i*2)+3;
-				handler->buffer_tx[current_byte]     = (uint8_t)((handler->table.registers[i] >> 8) & 0x00FF);
-				handler->buffer_tx[current_byte + 1] = (uint8_t)(handler->table.registers[i] & 0x00FF);
+
+				if(handler->packet_info.function_code == FC03)
+				{
+					handler->buffer_tx[current_byte]     = (uint8_t)((handler->table.holding_registers[i+handler->packet_info.start_address] >> 8) & 0x00FF);
+					handler->buffer_tx[current_byte + 1] = (uint8_t)(handler->table.holding_registers[i+handler->packet_info.start_address] & 0x00FF);
+				}
+				else if(handler->packet_info.function_code == FC04)
+				{
+					handler->buffer_tx[current_byte]     = (uint8_t)((handler->table.input_registers[i+handler->packet_info.start_address] >> 8) & 0x00FF);
+					handler->buffer_tx[current_byte + 1] = (uint8_t)(handler->table.input_registers[i+handler->packet_info.start_address] & 0x00FF);
+				}
 			}
 
 			crc16 = CRC16_calc(handler->buffer_tx, response_size);
@@ -196,9 +215,7 @@ void ModBus_ReadTable(MB_handler_t *handler)
 
 
 		break;
-		case FC04:
 
-		break;
 		default:
 			break;
 	}
@@ -227,10 +244,10 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 
 			break;
 			case FC06:
-				if(handler->packet_info.start_address < sizeof(handler->table.registers))
+				if(handler->packet_info.start_address < sizeof(handler->table.holding_registers))
 				{
-					handler->table.registers[handler->packet_info.start_address] = (handler->buffer_rx[4] << 8);
-					handler->table.registers[handler->packet_info.start_address] |= handler->buffer_rx[5];
+					handler->table.holding_registers[handler->packet_info.start_address] = (handler->buffer_rx[4] << 8);
+					handler->table.holding_registers[handler->packet_info.start_address] |= handler->buffer_rx[5];
 				}
 
 			break;
@@ -266,8 +283,8 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 					uint8_t high_byte_index = (i * 2) + 3;
 					uint8_t low_byte_index  = high_byte_index + 1;
 
-					handler->table.registers[handler->packet_info.start_address + i]  = ((handler->buffer_rx[high_byte_index + 4]) << 8);
-					handler->table.registers[handler->packet_info.start_address + i]  |= (handler->buffer_rx[low_byte_index + 4]);
+					handler->table.holding_registers[handler->packet_info.start_address + i]  = ((handler->buffer_rx[high_byte_index + 4]) << 8);
+					handler->table.holding_registers[handler->packet_info.start_address + i]  |= (handler->buffer_rx[low_byte_index + 4]);
 				}
 
 			break;

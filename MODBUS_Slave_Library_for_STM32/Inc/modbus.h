@@ -14,8 +14,10 @@
 
 typedef struct
 {
-	uint8_t  coils[50];
-	uint16_t registers[25];
+	uint8_t  coils[50];               //FC01
+	uint8_t  discrete_inputs[50];     //FC02
+	uint16_t holding_registers[25];	  //FC03
+	uint16_t input_registers[25];     //FC04
 }MB_Table_t;
 
 typedef enum
@@ -61,7 +63,7 @@ typedef struct
 	MB_Table_t table;
 
 	uint8_t buffer_rx[50];
-	uint8_t buffer_tx[50];
+	uint8_t buffer_tx[70];
 
 	uint8_t response_size;
 

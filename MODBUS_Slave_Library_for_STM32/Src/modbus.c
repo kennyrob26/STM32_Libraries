@@ -54,6 +54,7 @@ void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 	switch (handler->packet_info.function_code)
 	{
 		case FC01:
+		case FC03:
 			ModBus_Transmit(handler, handler->buffer_tx, handler->response_size);
 		break;
 
@@ -124,30 +125,40 @@ void ModBus_ReadTable(MB_handler_t *handler)
 	handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
 
 	const uint8_t head_bytes = 3; // ID+FC+Count
-	uint8_t byte_count = (uint8_t)((handler->packet_info.quantity + 7) / 8);
-	uint8_t response_size = head_bytes + byte_count;
+	uint8_t byte_count = 0; //(uint8_t)((handler->packet_info.quantity + 7) / 8);
+	uint8_t response_size = 0;//head_bytes + byte_count;
+
+	uint8_t current_byte;
+	uint16_t crc16;
 
 	switch (handler->packet_info.function_code)
 	{
 		case FC01:
+
+			byte_count = (uint8_t)((handler->packet_info.quantity + 7) / 8);
+			response_size = head_bytes + byte_count;
+
 			handler->buffer_tx[0] = handler->packet_info.slave_id;
 			handler->buffer_tx[1] = handler->packet_info.function_code;
 			handler->buffer_tx[2] = byte_count;
 
+			current_byte    = 0;
+			uint8_t current_address = 0;
+
 			for(uint8_t i=0; i<byte_count; i++)
 			{
-				uint8_t index = i+3;
+				current_byte = i+3;
 
-				handler->buffer_tx[index] = 0;
+				handler->buffer_tx[current_byte] = 0;
 
 				for(uint8_t j=0; j<8; j++)
 				{
-
-					handler->buffer_tx[index] |= (handler->table.coils[j] << j);
+					current_address = handler->table.coils[j + (i*8) + handler->packet_info.start_address];
+					handler->buffer_tx[current_byte] |= (current_address << j);
 				}
 			}
 
-			uint16_t crc16 = CRC16_calc(handler->buffer_tx, response_size);
+			crc16 = CRC16_calc(handler->buffer_tx, response_size);
 
 			handler->buffer_tx[response_size] = (uint8_t)(crc16 & 0x00FF);
 			handler->buffer_tx[response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
@@ -159,6 +170,30 @@ void ModBus_ReadTable(MB_handler_t *handler)
 
 		break;
 		case FC03:
+			byte_count = (handler->packet_info.quantity * 2);
+			response_size = head_bytes + byte_count;
+
+			handler->buffer_tx[0] = handler->packet_info.slave_id;
+			handler->buffer_tx[1] = handler->packet_info.function_code;
+			handler->buffer_tx[2] = byte_count;
+
+			current_byte = 0;
+
+
+			for(uint8_t i=0; i<handler->packet_info.quantity; i++)
+			{
+				current_byte = (i*2)+3;
+				handler->buffer_tx[current_byte]     = (uint8_t)((handler->table.registers[i] >> 8) & 0x00FF);
+				handler->buffer_tx[current_byte + 1] = (uint8_t)(handler->table.registers[i] & 0x00FF);
+			}
+
+			crc16 = CRC16_calc(handler->buffer_tx, response_size);
+
+			handler->buffer_tx[response_size] = (uint8_t)(crc16 & 0x00FF);
+			handler->buffer_tx[response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
+
+			handler->response_size = response_size + 2;
+
 
 		break;
 		case FC04:

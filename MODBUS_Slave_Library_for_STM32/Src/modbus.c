@@ -55,6 +55,14 @@ void ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size)
 
 void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 {
+	uint16_t crc16 = CRC16_calc(handler->buffer_tx, handler->response_size);
+
+	handler->buffer_tx[handler->response_size] = (uint8_t)(crc16 & 0x00FF);
+	handler->buffer_tx[handler->response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
+
+	ModBus_Transmit(handler, handler->buffer_tx, (handler->response_size + 2));
+
+	/*
 	switch (handler->packet_info.function_code)
 	{
 		case FC01:
@@ -86,6 +94,7 @@ void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 			break;
 
 	}
+	*/
 }
 
 static inline uint16_t calc_quantity(uint8_t *data_payload)
@@ -134,8 +143,11 @@ void ModBus_ReadTable(MB_handler_t *handler)
 	uint8_t byte_count = 0; //(uint8_t)((handler->packet_info.quantity + 7) / 8);
 	uint8_t response_size = 0;//head_bytes + byte_count;
 
-	uint8_t current_byte;
+	uint8_t current_byte = 0;
 	uint16_t crc16;
+
+	handler->buffer_tx[0] = handler->packet_info.slave_id;
+	handler->buffer_tx[1] = handler->packet_info.function_code;
 
 	switch (handler->packet_info.function_code)
 	{
@@ -145,11 +157,7 @@ void ModBus_ReadTable(MB_handler_t *handler)
 			byte_count = (uint8_t)((handler->packet_info.quantity + 7) / 8);
 			response_size = head_bytes + byte_count;
 
-			handler->buffer_tx[0] = handler->packet_info.slave_id;
-			handler->buffer_tx[1] = handler->packet_info.function_code;
 			handler->buffer_tx[2] = byte_count;
-
-			current_byte    = 0;
 			uint8_t current_address = 0;
 
 			for(uint8_t i=0; i<byte_count; i++)
@@ -169,56 +177,46 @@ void ModBus_ReadTable(MB_handler_t *handler)
 				}
 			}
 
-			crc16 = CRC16_calc(handler->buffer_tx, response_size);
-
-			handler->buffer_tx[response_size] = (uint8_t)(crc16 & 0x00FF);
-			handler->buffer_tx[response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
-
-			handler->response_size = response_size + 2;
-
 		break;
 
 		case FC03:
 		case FC04:
+
 			byte_count = (handler->packet_info.quantity * 2);
 			response_size = head_bytes + byte_count;
 
-			handler->buffer_tx[0] = handler->packet_info.slave_id;
-			handler->buffer_tx[1] = handler->packet_info.function_code;
 			handler->buffer_tx[2] = byte_count;
-
-			current_byte = 0;
-
+			uint16_t register_value;
 
 			for(uint8_t i=0; i<handler->packet_info.quantity; i++)
 			{
 				current_byte = (i*2)+3;
+				register_value = handler->table.holding_registers[i+handler->packet_info.start_address];
 
 				if(handler->packet_info.function_code == FC03)
 				{
-					handler->buffer_tx[current_byte]     = (uint8_t)((handler->table.holding_registers[i+handler->packet_info.start_address] >> 8) & 0x00FF);
-					handler->buffer_tx[current_byte + 1] = (uint8_t)(handler->table.holding_registers[i+handler->packet_info.start_address] & 0x00FF);
+					handler->buffer_tx[current_byte]     = (uint8_t)((register_value >> 8) & 0x00FF);
+					handler->buffer_tx[current_byte + 1] = (uint8_t)(register_value & 0x00FF);
 				}
 				else if(handler->packet_info.function_code == FC04)
 				{
-					handler->buffer_tx[current_byte]     = (uint8_t)((handler->table.input_registers[i+handler->packet_info.start_address] >> 8) & 0x00FF);
-					handler->buffer_tx[current_byte + 1] = (uint8_t)(handler->table.input_registers[i+handler->packet_info.start_address] & 0x00FF);
+					handler->buffer_tx[current_byte]     = (uint8_t)((register_value >> 8) & 0x00FF);
+					handler->buffer_tx[current_byte + 1] = (uint8_t)(register_value & 0x00FF);
 				}
 			}
-
-			crc16 = CRC16_calc(handler->buffer_tx, response_size);
-
-			handler->buffer_tx[response_size] = (uint8_t)(crc16 & 0x00FF);
-			handler->buffer_tx[response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
-
-			handler->response_size = response_size + 2;
-
 
 		break;
 
 		default:
 			break;
 	}
+
+	crc16 = CRC16_calc(handler->buffer_tx, response_size);
+
+	handler->buffer_tx[response_size] = (uint8_t)(crc16 & 0x00FF);
+	handler->buffer_tx[response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
+
+	handler->response_size = response_size + 2;
 }
 
 void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_info*/)
@@ -234,7 +232,6 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 			case FC02:
 			case FC03:
 			case FC04:
-				//handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
 				ModBus_ReadTable(handler);
 			break;
 
@@ -242,7 +239,12 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 				if(handler->packet_info.start_address < sizeof(handler->table.coils))
 					handler->table.coils[handler->packet_info.start_address] = handler->buffer_rx[4];
 
+
+				handler->response_size = 6;
+				memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
+
 			break;
+
 			case FC06:
 				if(handler->packet_info.start_address < sizeof(handler->table.holding_registers))
 				{
@@ -250,7 +252,11 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 					handler->table.holding_registers[handler->packet_info.start_address] |= handler->buffer_rx[5];
 				}
 
+				handler->response_size = 6;
+				memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
+
 			break;
+
 			case FC15:
 				handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
 				handler->packet_info.byte_count = handler->buffer_rx[6];
@@ -272,6 +278,9 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 					}
 				}
 
+				handler->response_size = 6;
+				memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
+
 				break;
 
 			case FC16:
@@ -284,8 +293,11 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 					uint8_t low_byte_index  = high_byte_index + 1;
 
 					handler->table.holding_registers[handler->packet_info.start_address + i]  = ((handler->buffer_rx[high_byte_index + 4]) << 8);
-					handler->table.holding_registers[handler->packet_info.start_address + i]  |= (handler->buffer_rx[low_byte_index + 4]);
+					handler->table.holding_registers[handler->packet_info.start_address + i]  |= (handler->buffer_rx[low_byte_index  + 4]);
 				}
+
+				handler->response_size = 6;
+				memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
 
 			break;
 			default:

@@ -61,40 +61,6 @@ void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 	handler->buffer_tx[handler->response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
 
 	ModBus_Transmit(handler, handler->buffer_tx, (handler->response_size + 2));
-
-	/*
-	switch (handler->packet_info.function_code)
-	{
-		case FC01:
-		case FC02:
-		case FC03:
-		case FC04:
-			ModBus_Transmit(handler, handler->buffer_tx, handler->response_size);
-		break;
-
-		case FC05:												//Response ID+FC+Address+Data+CRC
-		case FC06:
-			ModBus_Transmit(handler, handler->buffer_rx, handler->packet_size);
-		break;
-
-		case FC15:												//Response 8 bytes: ID+FC+Address+Quantity+CRC
-		case FC16:
-			uint8_t response[8];
-			memcpy(response, handler->buffer_rx, 6);
-
-			uint16_t crc16 = CRC16_calc(response, 6);
-
-			response[6] = (uint8_t)(crc16 & 0x00FF);
-			response[7] = (uint8_t)((crc16 >> 8) & 0x00FF);
-
-			ModBus_Transmit(handler, response, 8);
-		break;
-
-		default:
-			break;
-
-	}
-	*/
 }
 
 static inline uint16_t calc_quantity(uint8_t *data_payload)
@@ -107,8 +73,12 @@ static inline uint16_t calc_quantity(uint8_t *data_payload)
 	return quantity;
 }
 
-void ModBus_FillPacketInfo(MB_handler_t *handler)
+ModBus_Error_t ModBus_FillPacketInfo(MB_handler_t *handler)
 {
+
+	if(handler == NULL)
+		return MODBUS_ERROR_HANDLER_NOT_DEFINED;
+
 	handler->packet_info.slave_id = handler->buffer_rx[0];
 	handler->packet_info.function_code = handler->buffer_rx[1];
 	handler->packet_info.start_address = (uint16_t)(handler->buffer_rx[2] << 8);
@@ -119,19 +89,21 @@ void ModBus_FillPacketInfo(MB_handler_t *handler)
 
 	handler->packet_info.crc = handler->buffer_rx[handler->packet_size-2];
 	handler->packet_info.crc |= ((uint16_t)(handler->buffer_rx[handler->packet_size-1] << 8) & 0xFF00);
+
+	return MODBUS_OK;
 }
 
-uint8_t ModBus_ValidadeCRC(MB_handler_t *handler)
+ModBus_Error_t ModBus_ValidadeCRC(MB_handler_t *handler)
 {
 	uint16_t crc16 = CRC16_calc(handler->buffer_rx, (handler->packet_size-2));
 
 	if(handler->packet_info.crc == crc16)
 	{
-		return 1;
+		return MODBUS_OK;
 	}
 	else
 	{
-		return 0;
+		return MODBUS_ERROR_CRC_INVALID;
 	}
 }
 
@@ -144,7 +116,6 @@ void ModBus_ReadTable(MB_handler_t *handler)
 	uint8_t response_size = 0;//head_bytes + byte_count;
 
 	uint8_t current_byte = 0;
-	uint16_t crc16;
 
 	handler->buffer_tx[0] = handler->packet_info.slave_id;
 	handler->buffer_tx[1] = handler->packet_info.function_code;
@@ -191,18 +162,14 @@ void ModBus_ReadTable(MB_handler_t *handler)
 			for(uint8_t i=0; i<handler->packet_info.quantity; i++)
 			{
 				current_byte = (i*2)+3;
-				register_value = handler->table.holding_registers[i+handler->packet_info.start_address];
 
 				if(handler->packet_info.function_code == FC03)
-				{
-					handler->buffer_tx[current_byte]     = (uint8_t)((register_value >> 8) & 0x00FF);
-					handler->buffer_tx[current_byte + 1] = (uint8_t)(register_value & 0x00FF);
-				}
+					register_value = handler->table.holding_registers[i+handler->packet_info.start_address];
 				else if(handler->packet_info.function_code == FC04)
-				{
-					handler->buffer_tx[current_byte]     = (uint8_t)((register_value >> 8) & 0x00FF);
-					handler->buffer_tx[current_byte + 1] = (uint8_t)(register_value & 0x00FF);
-				}
+					register_value = handler->table.input_registers[i+handler->packet_info.start_address];
+
+				handler->buffer_tx[current_byte]     = (uint8_t)((register_value >> 8) & 0x00FF);
+				handler->buffer_tx[current_byte + 1] = (uint8_t)(register_value & 0x00FF);
 			}
 
 		break;
@@ -211,12 +178,50 @@ void ModBus_ReadTable(MB_handler_t *handler)
 			break;
 	}
 
-	crc16 = CRC16_calc(handler->buffer_tx, response_size);
+	handler->response_size = response_size;
+}
 
-	handler->buffer_tx[response_size] = (uint8_t)(crc16 & 0x00FF);
-	handler->buffer_tx[response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
+void ModBus_Handler(MB_handler_t *handler)
+{
+	ModBus_ReceivePacket_t status_handler = MODBUS_HANDLER_CHECK_ID;
+	ModBus_Error_t error;
 
-	handler->response_size = response_size + 2;
+	switch (status_handler)
+	{
+		case MODBUS_HANDLER_CHECK_ID:
+			if(handler->id == handler->buffer_tx[0])
+				status_handler = MODBUS_HANDLER_FILL_PACKET_INFO;
+			else
+			{
+				error = MODBUS_OK;
+				status_handler = MODBUS_HANDLER_FINISHED;
+			}
+
+		break;
+
+		case MODBUS_HANDLER_FILL_PACKET_INFO:
+			if(ModBus_FillPacketInfo(handler) == MODBUS_OK)
+			{
+				status_handler = MODBUS_HANDLER_CHECK_CRC;
+			}
+			else
+			{
+				error = MODBUS_ERROR_PACKET_MOUNT;
+				status_handler = MODBUS_HANDLER_ERROR ;
+			}
+
+		break;
+
+		case MODBUS_HANDLER_CHECK_CRC:
+
+
+
+
+
+			break;
+		default:
+			break;
+	}
 }
 
 void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_info*/)
@@ -271,10 +276,7 @@ void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_inf
 					{
 						mask = (1<<i);
 
-						if((index+i) < handler->packet_info.quantity)
-							handler->table.coils[index + i]  = ((handler->buffer_rx[j+7] & mask) > 0);
-						else
-							break;
+						handler->table.coils[index + i]  = ((handler->buffer_rx[j+7] & mask) > 0);
 					}
 				}
 

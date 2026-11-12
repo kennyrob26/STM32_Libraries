@@ -12,6 +12,29 @@
 
 #define SWAP16(x) (((x) >> 8) | ((x) << 8))
 
+
+typedef enum
+{
+	MODBUS_HANDLER_CHECK_ID        		= 0,
+	MODBUS_HANDLER_FILL_PACKET_INFO 	= 1,
+	MODBUS_HANDLER_CHECK_CRC        	= 2,
+	MODBUS_HANDLER_EXECUTE_FC       	= 3,
+	MODBUS_HANDLER_RESPONSE_TO_MASTER 	= 4,
+
+	MODBUS_HANDLER_FINISHED             = 200,
+	MODBUS_HANDLER_ERROR                = 201
+}ModBus_ReceivePacket_t;
+
+typedef enum
+{
+	MODBUS_OK 							= 0,
+	MODBUS_ERROR 						= 1,
+	MODBUS_ERROR_HANDLER_NOT_DEFINED 	= 2,
+	MODBUS_ERROR_PACKET_MOUNT           = 3,
+	MODBUS_ERROR_CRC_INVALID            = 4,
+
+}ModBus_Error_t;
+
 typedef struct
 {
 	uint8_t  coils[50];               //FC01
@@ -55,6 +78,8 @@ typedef struct
 
 typedef struct
 {
+	uint8_t id;
+
 	UART_HandleTypeDef* huart;
 	GPIO_TypeDef* gpio_port;
 	uint16_t gpio_pin;
@@ -74,9 +99,9 @@ typedef struct
 uint16_t CRC16_calc(uint8_t *buffer, uint8_t buffer_size);
 void ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
 
-void ModBus_FillPacketInfo(MB_handler_t *handler);
+ModBus_Error_t ModBus_FillPacketInfo(MB_handler_t *handler);
 
-uint8_t ModBus_ValidadeCRC(MB_handler_t *handler);
+ModBus_Error_t ModBus_ValidadeCRC(MB_handler_t *handler);
 
 void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_info*//*,  uint8_t size, MB_Buffer_t *buffer_rx*/);
 

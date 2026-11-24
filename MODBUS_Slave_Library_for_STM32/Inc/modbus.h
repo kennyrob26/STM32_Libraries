@@ -10,6 +10,11 @@
 
 #include "stm32f4xx_hal.h"
 
+#define BUFFER_TX_SIZE 50
+#define BUFFER_RX_SIZE 50
+
+#define HANDLER_TIMEOUT 2000
+
 #define SWAP16(x) (((x) >> 8) | ((x) << 8))
 
 
@@ -22,7 +27,8 @@ typedef enum
 	MODBUS_HANDLER_RESPONSE_TO_MASTER 	= 4,
 
 	MODBUS_HANDLER_FINISHED             = 200,
-	MODBUS_HANDLER_ERROR                = 201
+	MODBUS_HANDLER_TIMEOUT              = 201,
+	MODBUS_HANDLER_ERROR                = 202
 }ModBus_ReceivePacket_t;
 
 typedef enum
@@ -84,11 +90,12 @@ typedef struct
 	GPIO_TypeDef* gpio_port;
 	uint16_t gpio_pin;
 
+	uint32_t last_time;
 	MB_packet_t packet_info;
 	MB_Table_t table;
 
-	uint8_t buffer_rx[50];
-	uint8_t buffer_tx[70];
+	uint8_t buffer_rx[BUFFER_RX_SIZE];
+	uint8_t buffer_tx[BUFFER_TX_SIZE];
 
 	uint8_t response_size;
 
@@ -97,12 +104,15 @@ typedef struct
 
 
 uint16_t CRC16_calc(uint8_t *buffer, uint8_t buffer_size);
-void ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
+ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
 
 ModBus_Error_t ModBus_FillPacketInfo(MB_handler_t *handler);
 
 ModBus_Error_t ModBus_ValidadeCRC(MB_handler_t *handler);
+ModBus_Error_t ModBus_ExecuteFC(MB_handler_t *handler);
+void ModBus_Handler(MB_handler_t *handler);
 
 void ModBus_MountReceivedPacket(MB_handler_t *handler/*, MB_packet_t *packet_info*//*,  uint8_t size, MB_Buffer_t *buffer_rx*/);
+
 
 #endif /* MODBUS_MODBUS_H_ */

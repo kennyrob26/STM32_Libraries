@@ -43,24 +43,33 @@ uint16_t  CRC16_calc(uint8_t *buffer, uint8_t buffer_size)
 }
 
 
-void ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size)
+ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size)
 {
+	if(handler == NULL)
+		return MODBUS_ERROR_HANDLER_NOT_DEFINED;
+
+
 	HAL_GPIO_WritePin(handler->gpio_port, handler->gpio_pin, 1);
 	error = HAL_UART_Transmit(handler->huart, buffer, size, 100);
 	while (__HAL_UART_GET_FLAG(handler->huart, UART_FLAG_TC) == RESET);
 	HAL_GPIO_WritePin(handler->gpio_port, handler->gpio_pin, 0);
 
+	return MODBUS_OK;
 
 }
 
-void ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
+ModBus_Error_t ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 {
+	if(handler == NULL)
+		return MODBUS_ERROR_HANDLER_NOT_DEFINED;
+
 	uint16_t crc16 = CRC16_calc(handler->buffer_tx, handler->response_size);
 
 	handler->buffer_tx[handler->response_size] = (uint8_t)(crc16 & 0x00FF);
 	handler->buffer_tx[handler->response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
 
-	ModBus_Transmit(handler, handler->buffer_tx, (handler->response_size + 2));
+	return ModBus_Transmit(handler, handler->buffer_tx, (handler->response_size + 2));
+
 }
 
 static inline uint16_t calc_quantity(uint8_t *data_payload)
@@ -95,6 +104,9 @@ ModBus_Error_t ModBus_FillPacketInfo(MB_handler_t *handler)
 
 ModBus_Error_t ModBus_ValidadeCRC(MB_handler_t *handler)
 {
+	if(handler == NULL)
+		return MODBUS_ERROR_HANDLER_NOT_DEFINED;
+
 	uint16_t crc16 = CRC16_calc(handler->buffer_rx, (handler->packet_size-2));
 
 	if(handler->packet_info.crc == crc16)
@@ -181,46 +193,159 @@ void ModBus_ReadTable(MB_handler_t *handler)
 	handler->response_size = response_size;
 }
 
+
+ModBus_Error_t ModBus_ExecuteFC(MB_handler_t *handler)
+{
+	if(handler == NULL)
+		return MODBUS_ERROR_HANDLER_NOT_DEFINED;
+
+	switch (handler->packet_info.function_code)
+	{
+		case FC01:
+		case FC02:
+		case FC03:
+		case FC04:
+			ModBus_ReadTable(handler);
+		break;
+
+		case FC05:
+			if(handler->packet_info.start_address < sizeof(handler->table.coils))
+				handler->table.coils[handler->packet_info.start_address] = handler->buffer_rx[4];
+
+
+			handler->response_size = 6;
+			memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
+
+		break;
+
+		case FC06:
+			if(handler->packet_info.start_address < sizeof(handler->table.holding_registers))
+			{
+				handler->table.holding_registers[handler->packet_info.start_address] = (handler->buffer_rx[4] << 8);
+				handler->table.holding_registers[handler->packet_info.start_address] |= handler->buffer_rx[5];
+			}
+
+			handler->response_size = 6;
+			memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
+
+		break;
+
+		case FC15:
+			handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
+			handler->packet_info.byte_count = handler->buffer_rx[6];
+
+			uint8_t mask;
+
+			for(uint16_t j=0; j<handler->packet_info.byte_count; j++)
+			{
+				uint16_t index = handler->packet_info.start_address + (j * 8);
+
+				for(uint16_t i=0; i<8; i++)
+				{
+					mask = (1<<i);
+
+					handler->table.coils[index + i]  = ((handler->buffer_rx[j+7] & mask) > 0);
+				}
+			}
+
+			handler->response_size = 6;
+			memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
+
+			break;
+
+		case FC16:
+			handler->packet_info.quantity = calc_quantity(handler->buffer_rx);
+			handler->packet_info.byte_count = handler->buffer_rx[6];
+
+			for(uint8_t i=0; i<handler->packet_info.quantity; i++)
+			{
+				uint8_t high_byte_index = (i * 2) + 3;
+				uint8_t low_byte_index  = high_byte_index + 1;
+
+				handler->table.holding_registers[handler->packet_info.start_address + i]  = ((handler->buffer_rx[high_byte_index + 4]) << 8);
+				handler->table.holding_registers[handler->packet_info.start_address + i]  |= (handler->buffer_rx[low_byte_index  + 4]);
+			}
+
+			handler->response_size = 6;
+			memcpy(handler->buffer_tx, handler->buffer_rx, handler->response_size);
+
+		break;
+		default:
+			break;
+	}
+
+
+	return MODBUS_OK;
+}
+
+
 void ModBus_Handler(MB_handler_t *handler)
 {
 	ModBus_ReceivePacket_t status_handler = MODBUS_HANDLER_CHECK_ID;
 	ModBus_Error_t error;
 
-	switch (status_handler)
+	handler->last_time = HAL_GetTick();
+
+	while(status_handler != MODBUS_HANDLER_FINISHED && status_handler != MODBUS_HANDLER_ERROR)
 	{
-		case MODBUS_HANDLER_CHECK_ID:
-			if(handler->id == handler->buffer_tx[0])
-				status_handler = MODBUS_HANDLER_FILL_PACKET_INFO;
-			else
-			{
-				error = MODBUS_OK;
-				status_handler = MODBUS_HANDLER_FINISHED;
-			}
+		if((HAL_GetTick() - handler->last_time) >= HANDLER_TIMEOUT)
+		{
+			status_handler = MODBUS_HANDLER_TIMEOUT;
+		}
 
-		break;
-
-		case MODBUS_HANDLER_FILL_PACKET_INFO:
-			if(ModBus_FillPacketInfo(handler) == MODBUS_OK)
-			{
-				status_handler = MODBUS_HANDLER_CHECK_CRC;
-			}
-			else
-			{
-				error = MODBUS_ERROR_PACKET_MOUNT;
-				status_handler = MODBUS_HANDLER_ERROR ;
-			}
-
-		break;
-
-		case MODBUS_HANDLER_CHECK_CRC:
-
-
-
-
+		switch (status_handler)
+		{
+			case MODBUS_HANDLER_CHECK_ID:
+				if(handler->id == handler->buffer_rx[0])
+					status_handler = MODBUS_HANDLER_FILL_PACKET_INFO;
+				else
+				{
+					error = MODBUS_OK;
+					status_handler = MODBUS_HANDLER_FINISHED;
+				}
 
 			break;
-		default:
+
+			case MODBUS_HANDLER_FILL_PACKET_INFO:
+
+				error = ModBus_FillPacketInfo(handler);
+				if(error == MODBUS_OK)
+					status_handler = MODBUS_HANDLER_CHECK_CRC;
+				else
+					status_handler = MODBUS_HANDLER_ERROR ;
+
 			break;
+
+			case MODBUS_HANDLER_CHECK_CRC:
+
+				error = ModBus_ValidadeCRC(handler);
+				if(error  == MODBUS_OK)
+					status_handler = MODBUS_HANDLER_EXECUTE_FC;
+				else
+					status_handler = MODBUS_HANDLER_ERROR ;
+
+				break;
+
+			case MODBUS_HANDLER_EXECUTE_FC:
+				error = ModBus_ExecuteFC(handler);
+				if(error == MODBUS_OK)
+					status_handler = MODBUS_HANDLER_RESPONSE_TO_MASTER;
+				else
+					status_handler = MODBUS_HANDLER_ERROR;
+
+				break;
+
+			case MODBUS_HANDLER_RESPONSE_TO_MASTER:
+				error = ModBus_ResponseToMaster(handler, 1);
+
+				if(error == MODBUS_OK)
+					status_handler = MODBUS_HANDLER_FINISHED;
+				else
+					status_handler = MODBUS_HANDLER_ERROR;
+			break;
+			default:
+				break;
+		}
 	}
 }
 

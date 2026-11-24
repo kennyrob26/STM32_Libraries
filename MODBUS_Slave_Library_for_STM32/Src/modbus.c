@@ -42,7 +42,7 @@ uint16_t  CRC16_calc(uint8_t *buffer, uint8_t buffer_size)
     return buffer_crc;
 }
 
-
+/*
 ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size)
 {
 	if(handler == NULL)
@@ -57,6 +57,7 @@ ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t s
 	return MODBUS_OK;
 
 }
+*/
 
 ModBus_Error_t ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 {
@@ -68,7 +69,8 @@ ModBus_Error_t ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_o
 	handler->buffer_tx[handler->response_size] = (uint8_t)(crc16 & 0x00FF);
 	handler->buffer_tx[handler->response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
 
-	return ModBus_Transmit(handler, handler->buffer_tx, (handler->response_size + 2));
+	//return ModBus_Transmit(handler, handler->buffer_tx, (handler->response_size + 2));
+	return ModBus_Transmit(handler->buffer_tx, (handler->response_size + 2));
 
 }
 
@@ -291,6 +293,7 @@ void ModBus_Handler(MB_handler_t *handler)
 		if((HAL_GetTick() - handler->last_time) >= HANDLER_TIMEOUT)
 		{
 			status_handler = MODBUS_HANDLER_TIMEOUT;
+			break;
 		}
 
 		switch (status_handler)

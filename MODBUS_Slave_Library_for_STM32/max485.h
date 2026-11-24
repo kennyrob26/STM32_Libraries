@@ -1,0 +1,23 @@
+/*
+ * max485.h
+ *
+ *  Created on: Nov 24, 2026
+ *      Author: kenny
+ */
+
+#ifndef MODBUS_SLAVE_LIBRARY_FOR_STM32_MAX485_H_
+#define MODBUS_SLAVE_LIBRARY_FOR_STM32_MAX485_H_
+
+#include "modbus.h"
+
+
+typedef struct
+{
+	UART_HandleTypeDef* huart;
+	GPIO_TypeDef* gpio_port;
+	uint16_t gpio_pin;
+}MAX_handler_t;
+
+void Max_HandlerConfig(	UART_HandleTypeDef* huart, GPIO_TypeDef* gpio_port, uint16_t gpio_pin);
+
+#endif /* MODBUS_SLAVE_LIBRARY_FOR_STM32_MAX485_H_ */

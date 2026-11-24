@@ -86,9 +86,9 @@ typedef struct
 {
 	uint8_t id;
 
-	UART_HandleTypeDef* huart;
-	GPIO_TypeDef* gpio_port;
-	uint16_t gpio_pin;
+	//UART_HandleTypeDef* huart;
+	//GPIO_TypeDef* gpio_port;
+	//uint16_t gpio_pin;
 
 	uint32_t last_time;
 	MB_packet_t packet_info;
@@ -104,7 +104,8 @@ typedef struct
 
 
 uint16_t CRC16_calc(uint8_t *buffer, uint8_t buffer_size);
-ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
+//ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
+ModBus_Error_t ModBus_Transmit(uint8_t *buffer, uint8_t size);
 
 ModBus_Error_t ModBus_FillPacketInfo(MB_handler_t *handler);
 

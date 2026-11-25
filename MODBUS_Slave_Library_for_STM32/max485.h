@@ -16,8 +16,15 @@ typedef struct
 	UART_HandleTypeDef* huart;
 	GPIO_TypeDef* gpio_port;
 	uint16_t gpio_pin;
+
+	MB_handler_t *handler_mb;
+
+	uint8_t flag;
 }MAX_handler_t;
 
-void Max_HandlerConfig(	UART_HandleTypeDef* huart, GPIO_TypeDef* gpio_port, uint16_t gpio_pin);
+void Max_HandlerConfig(	UART_HandleTypeDef* huart, GPIO_TypeDef* gpio_port, uint16_t gpio_pin, MB_handler_t *handler_mb);
+
+uint8_t Max485_GetFlag();
+void Max485_ResetFlag();
 
 #endif /* MODBUS_SLAVE_LIBRARY_FOR_STM32_MAX485_H_ */

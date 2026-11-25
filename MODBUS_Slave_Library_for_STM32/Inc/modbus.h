@@ -106,6 +106,7 @@ typedef struct
 uint16_t CRC16_calc(uint8_t *buffer, uint8_t buffer_size);
 //ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size);
 ModBus_Error_t ModBus_Transmit(uint8_t *buffer, uint8_t size);
+ModBus_Error_t ModBus_Receive();
 
 ModBus_Error_t ModBus_FillPacketInfo(MB_handler_t *handler);
 

@@ -18,6 +18,8 @@ typedef struct
 	uint16_t gpio_pin;
 
 	MB_handler_t *handler_mb;
+	uint8_t buffer_rx[50];
+	uint8_t rx_size;
 
 	uint8_t flag;
 }MAX_handler_t;

@@ -42,22 +42,21 @@ uint16_t  CRC16_calc(uint8_t *buffer, uint8_t buffer_size)
     return buffer_crc;
 }
 
-/*
-ModBus_Error_t ModBus_Transmit(MB_handler_t *handler, uint8_t *buffer, uint8_t size)
+void ModBus_Init(MB_handler_t *handler, ModBus_Functions_t *functions)
 {
-	if(handler == NULL)
-		return MODBUS_ERROR_HANDLER_NOT_DEFINED;
-
-
-	HAL_GPIO_WritePin(handler->gpio_port, handler->gpio_pin, 1);
-	error = HAL_UART_Transmit(handler->huart, buffer, size, 100);
-	while (__HAL_UART_GET_FLAG(handler->huart, UART_FLAG_TC) == RESET);
-	HAL_GPIO_WritePin(handler->gpio_port, handler->gpio_pin, 0);
-
-	return MODBUS_OK;
-
+	handler->functions.ModBus_TransmitPacket = functions->ModBus_TransmitPacket;
+	/* Por enquanto não faz nada*/
 }
-*/
+
+void ModBus_Handler(MB_handler_t *handler)
+{
+	  if(handler->packet_flag == 1)
+	  {
+		  ModBus_HandlerPacket(handler);
+		  handler->packet_flag = 0;
+	  }
+}
+
 
 ModBus_Error_t ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_ok)
 {
@@ -70,7 +69,8 @@ ModBus_Error_t ModBus_ResponseToMaster(MB_handler_t *handler, uint8_t response_o
 	handler->buffer_tx[handler->response_size + 1] = (uint8_t)((crc16 >> 8) & 0x00FF);
 
 	//return ModBus_Transmit(handler, handler->buffer_tx, (handler->response_size + 2));
-	return ModBus_Transmit(handler->buffer_tx, (handler->response_size + 2));
+	//return ModBus_Transmit(handler->buffer_tx, (handler->response_size + 2));
+	return handler->functions.ModBus_TransmitPacket(handler->buffer_tx, (handler->response_size + 2));
 
 }
 
@@ -281,7 +281,7 @@ ModBus_Error_t ModBus_ExecuteFC(MB_handler_t *handler)
 }
 
 
-void ModBus_Handler(MB_handler_t *handler)
+void ModBus_HandlerPacket(MB_handler_t *handler)
 {
 	ModBus_ReceivePacket_t status_handler = MODBUS_HANDLER_CHECK_ID;
 	ModBus_Error_t error;
